@@ -1,0 +1,19 @@
+
+## export functions
+export(
+getPosteriors,
+readDMData,
+Report1,
+plotAandPData,
+plotPosteriors,
+info,
+writeResultsToFile,
+DM,SelectPrior,
+createRAVfile,
+findOptimum,
+SSTfuncDM,
+selectSR
+)
+
+## Imports
+importFrom(MASS, mvrnorm)

@@ -1,0 +1,15 @@
+Package: DM
+Type: Package
+Title: Dynamic Model
+Version: 1.4.2
+Date: 2017-02-08
+Depends: R (>= 2.15.0), R2jags, R2WinBUGS, coda, KernSmooth, GenSA, stringr, tools, knitr, shiny, openxlsx, VRAP
+SystemRequirements: WinBUGS 1.4, jags (>= 3.3.0)
+Author: Eli Holmes, Martin Liermann, Howard Coleman, NOAA, Seattle, USA
+Maintainer: Elizabeth Holmes - NOAA Federal <eli.holmes@noaa.gov>
+Description: This package uses comma-delimited data exported from the A&P Excel files to estimate the SR parameters for a user-specified SR function.
+License: GPL-2
+LazyData: yes
+BuildVignettes: yes
+Packaged: 2016-09-15 17:35:42 UTC; anatin
+NeedsCompilation: no
