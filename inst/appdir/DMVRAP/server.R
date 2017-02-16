@@ -1447,7 +1447,6 @@ shinyServer( function(input, output, session) {
   output$priorsplot <- renderPlot({
     par(mfrow=c(2,2))
     x <- seq(0,63,.1)
-    #pSigma <- input$pSigma/input$pMode
     ix <- rep(1, length(x)); ix[x>input$pRange[2]]=0; ix[x<input$pRange[1]]=0
     plot(x, dlnorm(x,log(input$pMode)+input$pSigma^2,sdlog=input$pSigma)*ix, 
          main='Production Prior',xlab='Production',ylab='Density',type='l',bty='n')
@@ -1457,6 +1456,7 @@ shinyServer( function(input, output, session) {
     plot(x, dnorm(x,mean=input$cMu,sd=input$cSigma)*ix, 
          main='Log Capacity Prior',xlab='Log Capacity',ylab='Density',type='l',bty='n')
     
+    # Code for tau prior removed
     # x <- seq(1e-5,1e-2,1e-5)
     # plot(x, dgamma(x,10^input$tauShape,10^input$tauRate), 
     #      main='tau Prior',xlab='tau',ylab='Density',type='l',bty='n')
