@@ -1,52 +1,115 @@
-#############################################################################################################
-## This function takes the dat and input from the A&P file and creates bdat list needed by runBugs
-#############################################################################################################
-createBUGSdata <- function(dat,input,priors=NULL){
-  centerVars <- F
-  BUGsDat <- list(
-    firstYear = which(dat$broodYear==input$firstYear),
-    lastYear = which(dat$broodYear==(input$lastYear)),
-    AEQ = dat$AEQ[,1],
+#' @title Create bugs data for model with or without age data.
+#' 
+#' @description This function creates bugs data (bdat).
+#' 
+#' @param dat data from the A & P file
+#' @param input a list with the other values needed for a DM run. 
+#' The following are examples naturalMort, analysisType = "DM" or "SS", SRfunction, includeMarineSurvival, includeFlow
+#' @param priors the parameters for the prior distributions used in the JAGS models.
+#' @param allData if allData=TRUE the data for both model types is returned. If allData=FALSE, just the data necessary for the specified model is returned.
+#' @return dataframe returns a list with the data and priors formatted as input for the JAGS model.
+createBUGSdata <- function(dat, input, priors=NULL, allData=FALSE){
+  
+  estimateMaturation <- ifelse(input$analysisType=="SS", TRUE, FALSE)
+  yrInd <- which(dat$broodYear==input$firstYear):which(dat$broodYear==(input$lastYear))
+  yrInd_p3 <- which(dat$broodYear==input$firstYear):(which(dat$broodYear==(input$lastYear))+3)
+  yrInd_age <- (which(dat$broodYear==(input$firstYear))+5):(which(dat$broodYear==(input$lastYear))+2) # changed from 3 to 2
+  BY <- dat$broodYear[yrInd]
+  BYage <- dat$broodYear[yrInd_p3]
+  
+  # prepare age data
+  ageDat <- dat$ages[yrInd_age,]
+  notNA <- !is.na(ageDat[,1])
+  aDat <- list()
+  aDat$A <- ageDat[notNA,]
+  aDat$AgeYears <- dat$broodYear[yrInd_age][notNA]
+  aDat$Asum <- apply(aDat$A,1,sum)
+  aDat$aYears <- dim(aDat$A)[1]
+  
+  sharedDat <- list(
+    firstYear = 1,
+    lastYear = length(BY),
     naturalMort = input$naturalMort,
-    matureFishingRate = as.matrix(dat$matureFishingRate),
-    mixedMaturityFishingRate = as.matrix(dat$mixedMaturityFishingRate),
-    maturationRate = as.matrix(dat$maturationRate),
-    preSpawnMortRate = as.matrix(dat$preSpawnMortRate),
-    totalSpawnersAge3to5 = dat$totalSpawnersAge3to5,
-    logTotalWildEscapementAge3to5 = log(dat$totalWildEscapementAge3to5)
+    matureFishingRate = as.matrix(dat$matureFishingRate)[yrInd,],
+    mixedMaturityFishingRate = as.matrix(dat$mixedMaturityFishingRate)[yrInd,],
+    preSpawnMortRate = as.matrix(dat$preSpawnMortRate)[yrInd,],
+    wildEscapementAge3to5obs = dat$totalWildEscapementAge3to5[yrInd_p3],
+    pHOS = (dat$totalSpawnersAge3to5[yrInd]-dat$totalWildEscapementAge3to5[yrInd])/dat$totalSpawnersAge3to5[yrInd]
   )
+  
+  # add marine survival and flow data if necessary
   if(input$includeMarineSurvival=="yes"){
-    if(centerVars) BUGsDat <- c(BUGsDat,list(marineSurvivalIndex = dat$marineSurvivalIndex-mean(dat$marineSurvivalIndex,na.rm=T)))
-    else BUGsDat <- c(BUGsDat,list(marineSurvivalIndex = dat$marineSurvivalIndex))
+    MSind <- log(dat$marineSurvivalIndex[yrInd])
+    if(input$centerMS) sharedDat <- c(sharedDat,list(logMarineSurvivalIndex = MSind-mean(MSind,na.rm=TRUE)))
+    else sharedDat <- c(sharedDat,list(logMarineSurvivalIndex = MSind))
   }
   if(input$includeFlow=="yes"){
-    if(centerVars) BUGsDat <- c(BUGsDat,list(flow = dat$flow-mean(dat$flow,na.rm=T)))
-    else BUGsDat <- c(BUGsDat,list(flow = dat$flow))
+    flowInd <- log(dat$flow[yrInd])
+    if(input$centerFlow) sharedDat <- c(sharedDat,list(logFlow = flowInd-mean(flowInd,na.rm=TRUE)))
+    else sharedDat <- c(sharedDat,list(logFlow = flowInd))
   }
   
-  # create base priors
-  if(is.null(priors)){
-    pMode <- 3
-    pSig <- 3
-    logMu <- log(pMode)+pSig^2
-    pTau <- 1/(pSig^2)
-    cTau <- 1/(50^2)
-    priors <- list(
-      prodPrior = c(logMu=logMu,tau=pTau,lowerBound=0,upperBound=20),
-      logCapPrior = c(mu=9,tau=cTau,lowerBound=3,upperBound=12),
-      msCoefPrior = c(lowerBound=0,upperBound=100),
-      flowCoefPrior = c(lowerBound=0,upperBound=100),
-      tauPrior = c(gamma1=0.0001,gamma2=0.0001)
+  # data just necessary for the DM model
+  DMdat <- list(
+    escapementAge3to5obs = dat$totalSpawnersAge3to5[yrInd],
+    AEQ = dat$AEQ[yrInd,1],
+    maturationRate = as.matrix(dat$maturationRate[yrInd,]),
+    AEQR = dat$AEQR
+  )
+  
+  # data just neccesary for the State Space model
+  SSdat <- list(
+    A = aDat$A,
+    AgeYears = which(BYage %in% aDat$AgeYears),
+    aYears = aDat$aYears,
+    Asum = as.vector(aDat$Asum)
+    #obsSDval = 0.15 # this is only used if observation error is fixed
     )
+  
+  # create base priors. Use priors parameter if non-null
+  if(is.null(priors)){
+    priors <- createPriors()
   }else{
-    # expecting a list with prodPrior, logCapPrior,msCoefPrior, flowCoefPrior, and tauPrior
-    # see above for paramterizations
-    priorNames <- c("prodPrior","logCapPrior","msCoefPrior","flowCoefPrior","tauPrior")
+    # expecting a list with prodPrior, logCapPrior,msCoefPrior, and flowCoefPrior
+    priorNames <- c("prodPrior","logCapPrior","msCoefPrior","flowCoefPrior")
     if(!all(priorNames %in% names(priors))){
       stop("ERROR: missing prior in createBUGSdata.")
     }
+    # fill in any missing prior values with defaults
+    defaultPriors <-   createPriors()
+    for(iName in names(priors)){
+      for(jName in names(priors[[iName]]))
+        defaultPriors[[iName]][jName] <- priors[[iName]][jName]
+    }
+    priors <- defaultPriors
+    
+    # error checking the priors
+    if(priors$flowCoefPrior["lowerBound"]>priors$flowCoefPrior["upperBound"])
+      stop("lowerbound of flow coef prior must be less than upperbound")
+    if(priors$msCoefPrior["lowerBound"]>priors$msCoefPrior["upperBound"])
+      stop("lowerbound of ms coef prior must be less than upperbound")
+    if(priors$logCapPrior["lowerBound"]>priors$logCapPrior["upperBound"])
+      stop("lowerbound of capacity prior must be less than upperbound")
+    if(priors$prodPrior["lowerBound"]>priors$prodPrior["upperBound"])
+      stop("lowerbound of production prior must be less than upperbound")
+    if(priors$logCapPrior["tau"]<=0) stop("sigma of capacity prior must be > 0")
+    if(priors$prodPrior["tau"]<=0) stop("sigma of production prior must be > 0")
+    if(priors$flowCoefPrior["tau"]<=0) stop("sigma of flow coef prior must be > 0")
+    if(priors$msCoefPrior["tau"]<=0) stop("sigma of marine survival coefficient prior must be > 0")
+
+    
   }
   
-  bdat <- c(priors,BUGsDat)
+  if(allData){
+    bdat <- c(priors,sharedDat,SSdat,DMdat)
+  }else{
+    if(input$analysisType=="SS"){
+      bdat <- c(priors,sharedDat,SSdat)
+    }else{
+      bdat <- c(priors,sharedDat,DMdat)
+    }
+  }
   bdat
 }
+# tt$input$analysisType <- "SS"  
+# createBUGSDM_AgeData(tt$dat,tt$input,basePriors=NULL)
