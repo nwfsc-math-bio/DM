@@ -1,4 +1,26 @@
 DM: Dynamic Model
 ------------------------------------
+Version 1.7
+-----------
+Fixed maximization
+* SRfunctions: standardized covariate treatment to be exp(p*cov)
+* SSTfuncDM: removed log transformation of msCoef and flowCoef so that these can be positive or negative
+* findOptimum, fndOpt: changed initialization of p to be 0 for msCoef and flowCoef
+* createPriors: removed constraint that flowCoef was negative; added upper and lower bounds to msCoef and flowCoef
+* throughout: changed flowCoef to be exp(p*cov) same as VRAP
+
+Version 1.6
+-----------
+Big clean-up and standardization of naming within functions
+All files changed.
+Changed arguments for runReport() so it can be used as feeder to Report1() to auto-generate reports.  Added figure captions to runReport().
+
+Changed report generation to use rmarkdown and pandoc so multiple formats can be generated.
+
+Version 1.5
+-----------
+Added Roxygen documentation
+
 Version 1.4.2
+-----------
 Addition of shiny app to interact with the package.
