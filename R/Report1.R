@@ -1,69 +1,73 @@
-Report1=function(a.and.p.file=NULL, RData.file=NULL, output.file=NULL, srFunc=NULL, covariates=NULL, show.file=TRUE, rav.options=list()){
-  if(missing(a.and.p.file) & missing(RData.file)) inp=c("AP","RData")[menu(c("Use A and P file to create .Rdata file.","Use .RData file saved posteriors."), graphics = FALSE, title = "\nWhat data should be used as input?")]
-  if(!missing(a.and.p.file)) inp="AP"
-  if(!missing(RData.file)) inp="RData"  #if both !null, then uses RData
-  if(inp=="RData"){
-    if(missing(RData.file)){
-      cat("\nChoose a .Rdata file of stored results\n")
-      RData.file=file.choose()
-    }
-    a=load(RData.file)
-    if(!all(c("population","input","dat","result","tDat") %in% a))
-      stop("The loaded stored Rdata file is missing population, input, dat, result or tDat",call.=FALSE)
-    mm <- ifelse(input$covariates=="yes",1,0)
-    ff <- ifelse(input$covariates=="yes",1,0)
-    if(missing(output.file)) output.file <- paste(input$population,"_", input$SRfunction,2+mm+ff,"_", Sys.Date(), sep="")
-  
-    }
-  if(inp=="AP"){
-    if(missing(srFunc)){
-      srFunc=c("ricker","bevertonHolt","hockeyStick")[menu(c("Ricker","Beverton-Holt","Hockey-Stick"), graphics = FALSE, title = "\nSelect SR function:")]
-    }else{
-      if(!is.character(srFunc)) stop("srFunc should be ricker/bevertonHolt/hockeyStick")
-      srFunc=str_sub(tolower(srFunc),1,1)
-      if(!(srFunc %in% c("r","b","h"))) stop("srFunc should be ricker/bevertonHolt/hockeyStick")
-      if(srFunc=="r") srFunc="ricker"
-      if(srFunc=="b") srFunc="bevertonHolt"
-      if(srFunc=="h") srFunc="hockeyStick"
-    }
-    if(missing(covariates)){
-      covariates=c("no","yes")[menu(c("No","Yes"), graphics = FALSE, title = "\nInclude marine conditions and stream flow as covariates?")]
-    }else{
-      if(!is.character(covariates)) stop("covariates should be no/yes")
-      covariates=str_sub(tolower(covariates),1,1)
-      if(!(covariates %in% c("n","y"))) stop("covariates should be no/yes")
-      if(covariates=="n") covariates="no"
-      if(covariates=="y") covariates="yes"
-    }
-    if(missing(a.and.p.file)){
-      cat("\nChoose the A & P input file.  Type ?readDMData for help.\n")
-      a.and.p.file=file.choose()
-    }
-    #this will set up the input and dat lists
-    tmp <- readDMData(a.and.p.file, srFunc, covariates)
-    dat <- tmp$dat
-    input <- tmp$input
-    population=tmp$input$population
-    
-    #run BUGS and get the posteriors
-    tmp = getPosteriors(dat, input)
-    result = tmp$result
-    tDat = tmp$tDat
-    
-    #Save the output
-    mm <- ifelse(input$covariates=="yes",1,0)
-    ff <- ifelse(input$covariates=="yes",1,0)
-    
-    if(missing(output.file)) output.file <- paste(input$population,"_", input$SRfunction,2+mm+ff,"_", Sys.Date(), sep="")
-    
-    #Write posteriors to .csv and RData file
-    writeResultsToFile(population, input, dat, tDat, result, file=output.file)
+#' @title Creates a PDF report with plots.
+#' @param dmObj a saved DM object (list) from runModel() with the objects "input","dat","result", and "tDat"
+#' @param dmObj.RData.file a saved DM object as a RData file with the objects "input","dat","result", and "tDat"
+#' @param output.file Filename to give saved report.
+#' @param rav.options list of the rav file options to use that do not come from the posteriors.
+#' @param output_format list of output formats.  Any that rmarkdown:::render allow are fine.
+#' @return Nothing.  The report is written to a PDF and tex file.
+Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
+                    rav.options=list(), output_format=c("html_document","pdf_document"))
+{
+  if (missing(dmObj) && missing(dmObj.RData.file)) {
+    stop(paste("Report generation requires either a runModel() results object",
+               "or an RData file name."))
   }
 
-  createRAVfile(dat, input, result, tDat, filename=paste(output.file,".rav",sep=""), options=rav.options)
-  
+  if (!missing(dmObj.RData.file)) {
+    rdnames <- load(dmObj.RData.file)
+    reqnames <- c("input", "dat", "bdat", "result", "tDat")
+    missing <- reqnames[!(reqnames %in% rdnames)]
+    if (length(missing) > 0) {
+      stop(paste(paste(missing,collapse=','), "missing in RData\n"))
+    }
+
+    SRfunction <- input$SRfunction
+    if (is.null(SRfunction)) {
+      stop("SRfunction missing in RData$input")
+    }
+
+    includeMarineSurvival <- input$includeMarineSurvival
+    if (is.null(includeMarineSurvival)) {
+      stop("includeMarineSurvival missing in RData$input")
+    }
+    includeFlow <- input$includeFlow
+    if (is.null(includeFlow)) {
+      stop("includeFlow missing in RData$input")
+    }  } else {
+    input <- dmObj$input
+    population <- input$population
+    includeMarineSurvival <- input$includeMarineSurvival
+    includeFlow <- input$includeFlow
+    SRfunction <- input$SRfunction
+    dat <- dmObj$dat
+    mlEst <- exp(dmObj$mlEst$estimate)
+    tDat <- dmObj$tDat
+    bdat <- dmObj$bdat
+  }
+
+  #Not sure why I want to create rav file for the report
+  createRAVfile(bdat, input, tDat, dat,
+                estType = "median",
+                filename=paste0(output.file,".rav"),
+                rav.options=rav.options)
+                
   pkgpath <- find.package("DM")
-  path=file.path(pkgpath, "doc", "Report1-knitr.xRnw")  
-  knit2pdf(path, output=paste(output.file,".tex",sep=""), envir=sys.nframe(), quiet=TRUE)
-  if(show.file) file.show(paste(output.file,".pdf",sep=""))
+  path=file.path(pkgpath, "doc", "Report1-knitr.Rmd")
+  for(out in output_format){
+    extra = ""
+    file.suffix = str_split(out,"_")[[1]][1]
+    if(file.suffix == "slidy") {extra="-slidy"; file.suffix="html"}
+    if(file.suffix == "ioslides") {extra="-ioslides"; file.suffix="html"}
+    if(file.suffix == "beamer") {extra="-beamer"; file.suffix="pdf"}
+    if(file.suffix == "word") {file.suffix="docx"}
+    rmarkdown::render(path, output_format=out,
+                    output_file=paste(output.file, extra,".",file.suffix,sep=""),
+                    output_dir=getwd())
+  }
+  # rmarkdown::render(path, output_format="pdf_document", 
+  #                   output_file=paste(output.file,".pdf",sep=""),
+  #                   output_dir=getwd())
+  # path=file.path(pkgpath, "doc", "Report1-knitr.xRnw")
+  # knit2pdf(path, output=paste(output.file,".tex",sep=""), envir=sys.nframe(),
+  #          quiet=TRUE)
 }
