@@ -1,12 +1,23 @@
-########################################################################################
-## Writes the output to a .csv and .Rdata file
-########################################################################################
-writeResultsToFile <- function(population, input, dat, tDat, result, file){
-  baseFileName = file
+#' @title Save DM output.
+#' 
+#' @description Write DM output (posteriors) to csv file and RData file.
+#' 
+#' @param population Name of the population.
+#' @param input a list with the other values needed for a DM run. The following are the defaults used, but can be passed in to specify something different: naturalMort = c(0.5,0.4,0.3,0.2,0.1,0), analysisType = "DM", SRfunction = "ricker", covariates = "no", includeMarineSurvival = "no", includeFlow = "no"
+#' @param dat data from the A & P file
+#' @param tDat a data frame of the posteriors and calculated process error and Smsy for each draw.  From calculatePEandSmsy(). 
+#' @param mlEst The maximum likelihood estimate for the four SR parameters
+#' @param bdat data for the bayesian specification of a DM run
+#' @param filename name to give the outputfiles file
+#' 
+#' @return nothing is returned but the csv and RData files are written.
+writeResultsToFile <- function(input, dat, tDat, 
+                               mlEst, bdat, filename){
+  baseFileName = filename
   if(str_sub(file,-4)==".csv") baseFileName = str_sub(file,1,-5)
   if(str_sub(file,-4)==".rda") baseFileName = str_sub(file,1,-5)
   if(str_sub(file,-6)==".RData") baseFileName = str_sub(file,1,-7)
   
   write.csv(tDat, file=paste(baseFileName, ".csv", sep=""), row.names=FALSE)
-  save(population, input, dat, result, tDat, file=paste(baseFileName, ".RData", sep=""))
+  save(input, dat, mlEst, tDat, bdat, file=paste(baseFileName, ".RData", sep=""))
 }
