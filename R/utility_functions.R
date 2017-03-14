@@ -1,4 +1,4 @@
-######### Various utility function
+######### Various utility functions
 str_proper=function(string) {
   for(i in 1:length(string)){
     x=tolower(string[i])
@@ -8,3 +8,5 @@ str_proper=function(string) {
   }
   string
 }
+
+
