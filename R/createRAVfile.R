@@ -1,48 +1,108 @@
-# This function takes the output from the DM model and creates a RAV file that can be used for 
-#   running the VRAP simulations. The parameter simInd indicates which MCMC sim to use.
-# This takes the information from the input file in the DM spreadsheet (read in by readDMData)
-#   and the results of the MCMC simulations. 
-# Current version has no uncertainty in management error and base exploitation rate must be included
-#   as a parameter. This could be calculated with the SR params, maturation rates, natMort, and harvest.
+#' @title Create rav file.
+#' 
+#' @description 
+#' This function takes the output from the DM model and creates a 
+#' rav file that can be used forrunning the VRAP simulations. 
+#' The parameter simInd indicates which MCMC sim to use. 
+#' This takes the information from the input file in the DM 
+#' spreadsheet (read in by readDMData) and the results of the 
+#' MCMC simulations. Current version has no uncertainty in 
+#' management error and base exploitation rate must be included 
+#' as a parameter. This could be calculated with the SR params, 
+#' maturation rates, natMort, and harvest.
+#' 
+#' @param bdat data for the bayesian specification of a DM run
+#' @param input a list with the other values needed for a DM run. 
+#' The following are examples naturalMort, analysisType = "DM", SRfunction, includeMarineSurvival, includeFlow
+#' @param tDat a data frame of the transformed posteriors and calculated process error and 
+#' Smsy for each draw.  From calculatePEandSmsy().  This is specifically for VRAP input.  The
+#' productivity (a) and capacity (b) posteriors are not adjusted (centered) if the covariates
+#' do not have 0 mean.  VRAP needs the SR parameters in this raw form using non-centered (de-meaned) covariates.
+#' @param dat data from the A & P file
+#' @param filename name to give the rav file
+#' @param estType ("median")
+#' @param sim indicates which MCMC sim from the posteriors to use if estType is not median
+#' @param rav.options list of the rav file options to use that do not come from the posteriors.
+#' \describe{
+#'   \item{randomSeed}{(0)}
+#'   \item{numRuns}{(1000) The number of simulations to run for computing 
+#'   probabilities in VRAP.}
+#'   \item{numYears}{(25) The number of years to project forward in the 
+#'   simulations.}
+#'   \item{minAge}{(2)}
+#'   \item{maxAge}{(5)}
+#'   \item{convergeCrit}{(0.001)}
+#'   \item{debugFlag}{("NO") "NO"/"YES"}
+#'   \item{marineSurvType}{("Autoc") "Autoc"/"Cycle"/"Trend"}
+#'   \item{flowType}{("Autoc") "Autoc"/"Cycle"/"Trend"}
+#'   \item{modelDepensation}{("NO") "NO"/"YES"}
+#'   \item{depensation}{(300)}
+#'   \item{QETcritical}{(63)}
+#'   \item{depensPar3}{(1)}
+#'   \item{recruitsFromAdultSpawners}{("YES") "NO"/"YES"}
+#'   \item{SRvariation}{("YES") "NO"/"YES"}
+#'   \item{smoltToAdultVar}{("NO") "NO"/"YES"}
+#'   \item{baseExploitationRate}{(0.67)}
+#'   \item{includeManagementError}{("YES") "NO"/"YES"}
+#'   \item{manageErrorA}{(65.3946) derived from estimates from Puget Sound for all except STL and WRS}
+#'   \item{manageErrorB}{(0.0158) derived from estimates from Puget Sound for all except STL and WRS}
+#'   \item{lowerEscThreshold}{(200)}
+#'   \item{numYearsToAvg}{(5)}
+#'   \item{runType}{("ER") "ER"/"Pop"}
+#'   \item{bufferMin}{(0)}
+#' }     
+#' @return nothing is returned but the rav file is written.
 createRAVfile = function(
-  dat,
+  bdat,
   input,
-  result,
   tDat,
+  dat,
   filename = "temp_rav.rav",
-  estimateType = "Bayes", # can be "Bayes" or "MLE" (SR params)
-  options=list()
+  estType = "median",
+  sim = 1,
+  rav.options=list()
 ) {
   tmp.options = list(
-    simInd = 1, # which simulated of the sets of simulated parameter values to use (between 1 and numSims)
+    randomSeed = 0,
     numRuns = 1000,
     numYears = 25,
     minAge = 2,
     maxAge = 5,
+    convergeCrit = 0.001,
+    debugFlag = "NO",
+    marineSurvType = "Autoc", #"Cycle" #"Trend" #
+    flowType = "Autoc", #"Cycle" #"Trend" #
     modelDepensation = "NO",
     depensation = 300,
     QETcritical = 63,
-    depensPar3 = 1 ,
-    lowerEscThreshold = 200, 
+    depensPar3 = 1,
     recruitsFromAdultSpawners = "YES",
     SRvariation = "YES",
-    baseExploitationRate = 0.70
+    smoltToAdultVar = "NO",
+    baseExploitationRate = 0.67,
+    includeManagementError ="YES",
+    manageErrorA = 65.3946, # (derived from estimates from Puget Sound for all except STL and WRS)
+    manageErrorB = 0.0158,
+    lowerEscThreshold = 200, 
+    numYearsToAvg = 5,
+    runType = "ER",
+    bufferMin = 0 
     )
-  # recruitsFromAdultSpawners and SRvariation are set at YES.  User will need to edit .rav file to change
   
-  if(!is.list(options)) stop("options argument must be a list")
+  # check to make sure options list is OK
+  if(!is.list(rav.options)) stop("rav.options argument must be a list")
+  if(!all(names(rav.options) %in% names(tmp.options))) stop("incorrect rav.option names")
   
+  # replace default options with value from options list
   if(!is.null(names(options))){
-    for(i in names(options)){
-      tmp.options[i]=options[i]
+    for(nam in names(options)){
+      tmp.options[nam]=options[nam]
     }
   }
   options=tmp.options
   
+  # function to calculate autocorrelation 
   calcAutoCorr <- function(x) cor(x[-1],x[-length(x)],use="pairwise.complete.obs")
-  
-  # Convergence criterion (% error) for target ER
-  convergeCrit <- 0.001
   
   # modelDepensation (currently a function parameter)
   # Norma Jean Sands:
@@ -63,10 +123,7 @@ createRAVfile = function(
   #    Currently a function parameter. recruitsFromAdultSpawners
   # Norma Jean Sands:
   #   Recruits may be calculated using eith all (total) spawners or, the more usual, adult spawners only.
-  
-  # figure out number of parameters for SR function
-  numParams <- ifelse(input$includeFlow=="yes",ifelse(input$includeMarineSurvival=="yes",4,3),2)
-  
+    
   # Norma Jean Sands:
   # FOR RapVuiability.exe version 2.2.4:
   # 
@@ -74,19 +131,41 @@ createRAVfile = function(
   # Third parameter is that for marine survival index (not used for Ric2 or Ric3) and fourth parameter is that for 
   # freshwater survival index (not used for Ric2).
   # 
-  # R = a S exp(-S/b) M^c exp(dF)
-  # 
+  # DM speced in writeBUGScode line 41
+  # R = prod*S*exp(-S/exp(logCap))*M^msCoef  exp(-flowCoef*logFlow)
+  # R = prod*S*exp(-S/exp(logCap))* exp(msCoef*logMS) * exp(-flowCoef*logFlow)
+  # VRAP speced in CompRecruits line 31 in VRAP package
+  # Note this is not the way that Norma writes the SR funs in her documentation, but this is how it is in CompRecruits.R
+  # R = a S exp(-S/b) M^c exp(dF), where F=logFlow
+  # equivalent to R = a S exp(-S/b) exp(c*logMS) exp(d*logFlow)
+  # a=prod; b=exp(logCap); c=msCoef, d=-flowCoef
+
   # For Bev2, Bev3,  and Bev4, first parameter is intrinsic productivity (slope at orgin) and second parameter is max recruits.  
   # Third parameter is that for marine survival index (not used for Bev2 or Bev3) and fourth parameter is that for freshwater 
   # survival index (not used for Bev2).
   # 
-  # R = [1/( (1/b) + (1/(a*S))  )]  M^c  exp(dF)
-  # 
-  # For Hoc2, Hoc3, and Hoc4, first parameter is intrinsic productivity and second is max recruits.  Third parameter is that for 
+  # DM speced in writeBUGScode.R lines 39-45
+  # DM R = [S/( (S/exp(logCap)) + (1/prod)  )]  M^msCoef  exp(-flowCoef*logFlow)
+  # VRAP speced in CompRecruits in VRAP package
+  # Note this is not the way that Norma writes the SR funs in her documentation, but this is how it is in CompRecruits.R
+  # VRAP R = [S/( S/b + 1/a )] * M^c *  exp(d F), where F=logFlow 
+  # a=prod; b=exp(logCap); c=msCoef, d=-flowCoef
+  
+  # Hoc2, Hoc3, and Hoc4, first parameter is intrinsic productivity and second is max recruits.  Third parameter is that for 
   # marine survival index (not used for Hoc2 or Hoc3) and fourth parameter is that for freshwater survival index (not used for Hoc2).
   # 
+  # DM speced in writeBUGScode line 40
+  # R = min(prod*S,exp(logCap))
+  # VRAP speced in CompRecruits in VRAP package
+  # Note this is not the way that Norma writes the SR funs in her documentation, but this is how it is in CompRecruits.R
   # R = min(aS, b)  M^c  exp(dF) 
+  # a=prod; b=exp(logCap); c=msCoef, d=-flowCoef
   
+    # figure out number of parameters for SR function
+  if(input$includeFlow=="no" & input$includeMarineSurvival=="yes")
+    stop("VRAP does not allow marine survival to be included as a covariate without flow also being included.")
+  numParams <- ifelse(input$includeFlow=="yes",ifelse(input$includeMarineSurvival=="yes",4,3),2)
+
   # create abbreviated SR function name with number of params
   funcType <- paste(
     switch(input$SRfunction,
@@ -96,29 +175,27 @@ createRAVfile = function(
     ),
     numParams,
     sep="")
-  
+    
   # SR parameters
-  if(estimateType=="Bayes"){
-    # note that calcPEandSmsy converts parameters to form used in RAV files
-    SRparameters <- tDat[options$simInd,c("a","b","c","d")]
-  }else if(estimateType=="MLE"){
-    # need to exponentiate all p's and change sign of p[4] to 
-    #   convert from the findOptimum p format to the a,b,c,d RAV format
-    SRparameters <- exp(result$estimate[1:numParams])
-    SRparameters[4] <- -SRparamters[4]
+  if(estType=="median"){
+    SRparameters <- med(as.matrix(tDat[,c("a","b","c","d")]),method="Tukey")$median
   }else{
-    stop("ERROR: unknown estimate type. Should be Bayes or MLE")
+  	SRparameters <- tDat[sim,c("a","b","c","d")]
   }
   if(numParams < 4) SRparameters[(numParams+1):4] <- 0
+    
+  # values used to center covariates (used here to un-center values if necessary)
+  logFlowMu <- mean(log(dat$flow[dat$broodYear %in% input$firstYear:input$lastYear]))
+  logMSMu <- mean(log(dat$marineSurvivalIndex[dat$broodYear %in% input$firstYear:input$lastYear]))
   
   # Mean and CV  for marine survival index (M^c)  
-  marineSurvMu <- mean(dat$marineSurvivalIndex,na.rm=T)
-  marineSurvCV <- sd(dat$marineSurvivalIndex,na.rm=T)/marineSurvMu
-  marineSurvMax <- max(dat$marineSurvivalIndex,na.rm=T)
-  marineSurvType <- "Autoc" #"Cycle" #"Trend" #
+  msInd <- if(input$centerMS) exp(bdat$logMarineSurvivalIndex+logMSMu) else exp(bdat$logMarineSurvivalIndex)
+  marineSurvMu <- mean(msInd,na.rm=TRUE)
+  marineSurvCV <- sd(msInd,na.rm=TRUE)/marineSurvMu
+  marineSurvMax <- max(msInd,na.rm=TRUE)
   if(input$includeMarineSurvival=="yes"){
-    msParams <- switch(marineSurvType,
-                       Autoc = c(ifelse(marineSurvCV>0,calcAutoCorr(dat$marineSurvivalIndex),0),rep(0,2)),
+    msParams <- switch(options$marineSurvType,
+                       Autoc = c(ifelse(marineSurvCV>0,calcAutoCorr(msInd),0),rep(0,2)),
                        Trend = c(0,rep(NULL,2)), # not sure of approach used by Norma. Lots of conditional formulas used in middleStep sheet.
                        Cycle = c(marineSurvMax - marineSurvMu, 30, 0) # amplitude, period, starting point
     )
@@ -127,13 +204,13 @@ createRAVfile = function(
   }
   
   # Mean and CV  for flow (or other fw) index (exp(dF))
-  flowMu <- mean(dat$flow,na.rm=T)
-  flowCV <- sd(dat$flow,na.rm=T)/flowMu
-  flowMax <- max(dat$flow,na.rm=T)
-  flowType <- "Autoc" #"Cycle" #"Trend" #
+  flowInd <- if(input$centerFlow) bdat$logFlow+logFlowMu else bdat$logFlow
+  flowMu <- mean(flowInd,na.rm=TRUE)
+  flowCV <- sd(flowInd,na.rm=TRUE)/flowMu
+  flowMax <- max(flowInd,na.rm=TRUE)
   if(input$includeFlow=="yes"){
-    fParams <- switch(flowType,
-                      Autoc = c(ifelse(flowCV>0,calcAutoCorr(dat$flow),0),rep(0,2)),
+    fParams <- switch(options$flowType,
+                      Autoc = c(ifelse(flowCV>0,calcAutoCorr(flowInd),0),rep(0,2)),
                       Trend = c(0,rep(NULL,2)), # not sure of approach used by Norma. Lots of conditional formulas used in middleStep sheet.
                       Cycle = c(flowMax - flowMu, 30, 0) # amplitude, period, starting point
     )
@@ -150,15 +227,27 @@ createRAVfile = function(
   #     These values are generated as part of the BUGs model post processing (saved in tDat)
   if(numParams>2){
     SRvarA <- 0.0
-    SRvarB <- tDat$MSE[options$simInd]
-    SRvarCor <- tDat$autoCorr[options$simInd]
+    if(estType=="median"){
+      tmp <- med(as.matrix(tDat[,c("MSE","autoCorr")]),method="Spatial")$median
+    }else{
+      tmp <- tDat[sim,c("MSE","autoCorr")]
+    }
+    SRvarB <- tmp[1]
+    SRvarCor <- tmp[2]
   }else{
-    SRvarA <- (tDat$meanSR[options$simInd]/tDat$sdSR[options$simInd])^2
-    SRvarB <- (tDat$sdSR[options$simInd]^2)/tDat$meanSR[options$simInd]
+  	if(estType=="median"){
+      tmp <- med(as.matrix(tDat[,c("meanSR","sdSR")]),method="Spatial")$median
+    }else{
+      tmp <- tDat[sim,c("meanSR","sdSR")]
+    }
+    mu <- tmp[1]
+    s2 <- tmp[2]
+    SRvarA <- mu^2/s2 #(tDat$meanSR[options$simInd]/tDat$sdSR[options$simInd])^2
+    SRvarB <- s2/mu #(tDat$sdSR[options$simInd]^2)/tDat$meanSR[options$simInd]
     SRvarCor <- 0.0
   }
   
-  # base exploitation rate: this is the estimated/observed exploitation rate (for a 3 year period??? a base period???)
+  # base exploitation rate: this is the estimated/observed exploitation rate (for a 3 year period)
   # it looks like it is just (estimated catch) / (estimated escapement + estimated catch) (using SR params, maturation rates, and sources of mortality) 
   # Norma Jean Sands comment:
   #   For the ER run (see line 29) this ER value is just used as base for determining steps in determining range of ER to analyze (see lines 30 and 31)
@@ -170,21 +259,22 @@ createRAVfile = function(
   #   This can vary as well. Not sure where to get
   # Norma Jean Sands:
   #   The 65.395 and 0.016 values come from a study on achieved ER compared to target ER for Puget Sound chinook populations (from CTC/comanagers)
-  manageErrorA <- 65.3946 # (derived from estimates from Puget Sound for all except STL and WRS)
-  manageErrorB <- 0.0158
   
   
   # Upper escapement threshold (MSY);  # yrs to ave. 
   # Martin Liermann notes:
   #    Notice that the SMSY value can very large when the model is unconstrained and there is little information
   #    in the data about the capacity.
-  msySpawners <- tDat$Smsy[options$simInd]
-  numYearsToAvg <- 5
+  if(estType=="median"){
+    msySpawners <- median(tDat$Smsy)
+  }else{
+    msySpawners <- tDat$Smsy[sim]
+  }
   
   # Norma Jean Sands: runType
   #   ER run  gives extinction rate, % of times less than lower threshold and % of times esc reaches upper threshold for a range of ERs.  
   #   Pop run, for a given ER,  gives exinction rate, % of times les than lower threshold and % of times esc reaches upper threshold for a range of equilbrium esc levels.  
-  runType <- "ER" 
+  # runType <- "ER" 
   
   # Buffer step size as percent of base ER or Pop capacity 
   # Norma Jean Sands:
@@ -198,7 +288,7 @@ createRAVfile = function(
   # Norma Jean Sands:
   #    For the ER selection, these two numbers times the base ER (line 25) give the start and end values of the range of ER values to test.
   #    For the Pop selection, these two numbers times the base b parameter value (line 25) give the start and end values of the range of b values to test.
-  bufferMin <- 0
+  # bufferMin <- 0
   bufferMax <- 0.8/options$baseExploitationRate
   
   # Initial population size at Age 1:5 of start year (prior to nat mort) 
@@ -219,52 +309,63 @@ createRAVfile = function(
   #    of fishing rates and exploitation rates used in the run reconstruction.  
   #    If different values are used in determining fishing rate estimates, those values should be used here. 
   naturalMort <- input$naturalMort
-  
-  # years index for broodyears within the range firstYear:lastYear
-  yrRange <- dat$broodYear %in% input$firstYear:input$lastYear
-  
+    
   # maturation rates
-  averageMaturationRate <- apply(dat$maturationRate[yrRange,],2,mean,na.rm=T)
+  if(input$analysisType=="DM"){
+    averageMaturationRate <- apply(bdat$maturationRate,2,mean,na.rm=TRUE)
+  }else if(input$analysisType=="SS"){ # use multivariate median to summarize the posterior
+  	if(estType=="median"){
+  	  if(var(tDat$mat4)<0.001){  
+        averageMaturationRate <- c(med(as.matrix(tDat[,c("mat1","mat2","mat3")]),method="Tukey",mustdith=TRUE)$median,1)
+      }else{
+        averageMaturationRate <- med(as.matrix(tDat[,c("mat1","mat2","mat3","mat4")]),method="Tukey",mustdith=TRUE)$median
+      }
+    }else{
+      averageMaturationRate <- tDat[sim,c("mat1","mat2","mat3","mat4")]
+    }
+  }else{
+    stop(paste("Unrecognized analysis Type:",input$analysisType, ". Must be SS or DM."))
+  }
   
   # average mixed-maturity and mature fishery fishing rates
-  averageMixedMaturityFishingRate <- apply(dat$mixedMaturityFishingRate[yrRange,],2,mean,na.rm=T)
-  averageMatureFishingRate <- apply(dat$matureFishingRate[yrRange,],2,mean,na.rm=T)
+  averageMixedMaturityFishingRate <- apply(bdat$mixedMaturityFishingRate,2,mean,na.rm=TRUE)
+  averageMatureFishingRate <- apply(bdat$matureFishingRate,2,mean,na.rm=TRUE)
   
   
   # create lines of text for RAV file based on calculated values and params from above
   ravText <- paste(
     input$population, ", Title\n",
-    0,", Random seed; 0 gives random seed; numbers give fixed seed\n",
+    options$randomSeed,", Random seed; 0 gives random seed; numbers give fixed seed\n",
     options$numRuns,", Number of runs\n",
     options$numYears,", Number of years\n",
     options$minAge,", ", options$maxAge,", Minimum and maximum age (for now this is fixed; do not change)\n",
-    convergeCrit,", Convergence criterion (% error) for target ER\n",
-    "NO, Debug file flag\n",
+    options$convergeCrit,", Convergence criterion (% error) for target ER\n",
+    options$debugFlag,", Debug file flag\n",
     funcType,", Spawner Recruit function (Ric2;Ric3;Ric4; Bev2;Bev3;Bev4; Hoc2;Hoc3;Hoc4)\n",
     paste(formatC(as.numeric(SRparameters[1:numParams]),digits=8,format="f"),sep="",collapse=","),", S/R a; b parameters; c (Marine); d (Freshwater)\n",
     ifelse(input$includeMarineSurvival=="yes",paste(marineSurvMu,marineSurvCV,sep=", "),""),ifelse(input$includeMarineSurvival=="yes",", ",""),"Mean and CV  for marine survival index (M^c)\n",
-    ifelse(input$includeMarineSurvival=="yes",paste(marineSurvType,", ",sep=""),""),"Trend; Cycle; or Autoc(orrelation) for Marine Survival?,\n",
+    ifelse(input$includeMarineSurvival=="yes",paste(options$marineSurvType,", ",sep=""),""),"Trend; Cycle; or Autoc(orrelation) for Marine Survival?\n",
     paste(msParams,collapse=", "),ifelse(input$includeMarineSurvival=="yes",", ",""),"Trend/Cycle parameters: rate for trend- amplitude- period & starting pt for cycle; correl for autocorrelation\n",
     ifelse(input$includeFlow=="yes",paste(flowMu,flowCV,sep=", "),""),ifelse(input$includeFlow=="yes",", ",""),"Mean and CV  for flow (or other fw) index (exp(dF))\n",
-    ifelse(input$includeFlow=="yes",paste(flowType,", ", sep=""),""),"Trend; Cycle; or Autoc(orrelation) for Flow?,\n",
+    ifelse(input$includeFlow=="yes",paste(options$flowType,", ", sep=""),""),"Trend; Cycle; or Autoc(orrelation) for Flow?\n",
     paste(fParams,collapse=", "),ifelse(input$includeFlow=="yes",", ",""),"Trend/Cycle parameters: rate for trend- amplitude- period & starting pt for cycle; correl for autocorrelation\n",
     options$modelDepensation,", Depensation? (YES or NO)\n",
     options$depensation,", ",options$QETcritical,",",options$depensPar3,", 1) Esc. level for depensation to start 2) QET 3)% predicted return at QET (or for r/s=1 third parameter = 1)\n",
     options$recruitsFromAdultSpawners,", Determine recruits from adult spawners (not total)?\n",
     options$SRvariation,", Stock-recruit variation (YES or NO)\n",
     SRvarA,", ",SRvarB,", ",SRvarCor,", A and B parameters S/R error and error autocorrelation\n",
-    "NO, Smolt to adult survival w/variation (YES or NO);  Deprecated replaced marine survival covariate.\n",
+    options$smoltToAdultVar,", Smolt to adult survival w/variation (YES or NO);  if Yes beta variation on cohort size (2 parameters) on next line\n",
     "Beta distribution a and b parameters and autocorrelation\n",
-    "0, Number of breakpoints; in escapement to trigger management action; Not used.\n",
+    "0, Number of breakpoints; in escapement to trigger management action\n",
     "1, Level to use as base regime\n",
     options$baseExploitationRate,", base exploitation rate\n",
-    "YES, Include error (YES or NO) in ER management; Norma Jean Sands: If no, put zeros in cells A27 and B27\n",
-    manageErrorA,", ",manageErrorB,", Gamma parameters for management error\n",
+    options$includeManagementError,", Include error (YES or NO) in ER management; Norma Jean Sands: If no put zeros in cells A27 and B27\n",
+    options$manageErrorA,", ",options$manageErrorB,", Gamma parameters for management error\n",
     options$lowerEscThreshold,", Lower escapement threshold\n",
-    msySpawners,", ", numYearsToAvg,", Upper escapement threshold (MSY);  # yrs to ave.\n",
-    runType,", Step ER (ER) or  Pop Capacity (Pop)?\n",
+    msySpawners,", ", options$numYearsToAvg,", Upper escapement threshold (MSY);  # yrs to ave.\n",
+    options$runType,", Step ER (ER) or  Pop Capacity (Pop)?\n",
     bufferStepSize,", Buffer step size as percent of base ER or Pop capacity\n",
-    bufferMin,", ",bufferMax,", Min & max buffer (x base for start & end)\n",
+    options$bufferMin,", ",bufferMax,", Min & max buffer (x base for start & end)\n",
     paste(paste(initialPop,", Initial population size at Age ",sep=""),1:length(initialPop),"\n",collapse=""),
     paste(paste(naturalMort,", Age",sep=""),1:length(naturalMort),"natural mortality\n",collapse=""),
     paste(paste(averageMaturationRate,", Age",sep=""),2:(length(averageMaturationRate)+1),"average maturation rate\n",collapse=""),
