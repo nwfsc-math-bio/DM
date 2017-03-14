@@ -38,9 +38,6 @@ select the "VRAP" tab and click "Help".</i>
     be included.
   </li>
   <li>
-    Select the analysis type. Either DM (traditional) or SS (state space model that includes age data).
-  </li>
-  <li>
     Click the "Run Dynamic Model" button.
   </li>
   </ul>

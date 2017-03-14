@@ -1,18 +1,19 @@
 .libPaths(c("/usr/lib64/R/shiny_library",.libPaths()))
 require(DM)
-require(shiny) # 0.6.0
-## require(shinyIncubator) # devtools::install_github("shiny-incubator", "rstudio")
+require(shiny) # 0.14.2
 require(openxlsx)
+require(depth)
 require(VRAP)
 
-source("common.R")  ## import EXAMPLES, shared with server.R
 if (file.exists("parcores.R")) {
   source("parcores.R")
 } else {
   parcores <- function() { 1 }
 }
 
-ONSERVER <- FALSE
+ONSERVER <- serverInfo()$shinyServer
+## ONSERVER <- TRUE
+## ONSERVER <- FALSE
 
 XLSXSHEET <- "DynamicsInput"
 BASEOUTFILE <- "DMresults"
@@ -44,12 +45,20 @@ WAITSCANNINGMSG <- paste0("<div style='min-height:40px'> </div>",
 XLSXERRORMSG <- paste("<b>A DynamicsInput sheet could not be extracted<br/>",
                       "from the uploaded file.</b><br/><br/>",
                       "Please verify the file format.<br/>")
+XLSXVERSIONMSG <- paste("<b>The DynamicsInput sheet of the selected XLSX file",
+                        "has too few columns.<br/>",
+                        "This file may be an older version input.",
+                        "Please read the \"XLSX version\" portion of the<br/>",
+                        "help file for more details.<br/>")
 HIDEWAITMSGCLASS <- "notbusy"
 SHOWWAITMSGCLASS <- "busy"
 
 VRAPTABLOADCOUNTER <- 0
 VRAPTABLOADLIMIT <- 3
 VRAPPREVTYPE <- NULL
+
+NOMINALXLSXCOLS = 42
+EMPTYXLSXCOL = 30
 
 ## HIDEUSERMSGCLASS <- "nomsgdisplay"
 ## SHOWUSERMSGCLASS <- "msgdisplay"
@@ -64,6 +73,19 @@ SCANCMD <- "clamdscan --fdpass --remove"
 ## global utility functions
 ##################################################################
 
+## Workaround for skipEmptyCols bug in openxlsx 4.0.0
+
+readXLSX <- function(xlsxfile, nominalcols, emptycol=30, sheet="DynamicsInput") {
+  df <- read.xlsx(xlsxfile, sheet=sheet, colNames=FALSE, skipEmptyCols=FALSE)
+  if (ncol(df) > emptycol) {
+    if (ncol(df) < nominalcols) {
+      df <- cbind(df[1:emptycol-1],rep(0,nrow(df)),df[emptycol:ncol(df)])
+      colnames(df) <- paste0('X',1:ncol(df))
+    }
+  }
+  df
+}
+
 ## Sanity check for DM input xlsx/csv files
 
 checkDMFile <- function(file="~/Desktop/A&P03LoSkagitV68.csv",
@@ -75,7 +97,8 @@ checkDMFile <- function(file="~/Desktop/A&P03LoSkagitV68.csv",
   thedf <- NULL
   
   if ("xlsx" == filetype) {
-    thedf <- read.xlsx(file, "DynamicsInput", colNames=FALSE)
+    thedf <- readXLSX(file, nominalcols=NOMINALXLSXCOLS,
+                      emptycol=EMPTYXLSXCOL)
   } else if ("csv" == filetype) {
     thedf <- read.csv(file, stringsAsFactors=FALSE, header=FALSE)
   } else {
@@ -285,11 +308,14 @@ shinyServer( function(input, output, session) {
   lcores <- parcores()
 
   ## switches serve as collection point for notification of output file
-  ## creation and deletion
+  ## creation and deletion, among other things
   
   switches <- reactiveValues(
     outputs=TRUE,
-    vrapoutputs=TRUE
+    vrapoutputs=TRUE,
+    resetravupload=FALSE,    ## clear notification for rav uploader
+    resetxlsxupload=FALSE,   ## clear notification for xlsx uploader
+    resetrdupload=FALSE      ## clear notification for Rdata uploader
   )
 
   ## Attempt to detect user platform for download format default
@@ -390,7 +416,7 @@ shinyServer( function(input, output, session) {
   clearDMOutputs <- function() {
     outdir <- getOutputDir()
     baseName <- getOutputBaseName()
-    files <- Sys.glob(c(outputPath(".*")))
+    files <- Sys.glob(c(outputPath("*")))
     lapply(files, function(x) {file.remove(x)})
 
     getOutputBaseName(delete=TRUE)
@@ -475,27 +501,27 @@ shinyServer( function(input, output, session) {
       close(thefile)
       if (DMoutput || input$vraptype == "currentRData") {
         uploadname <- inputFileName()
-        lines <- sub("^( *Copy of Input File.* .*)$",
-                     paste0(" DM Input File: ",uploadname),
+        lines <- sub("^ *Copy of Input File.*$",
+                     paste0("DM Input File: ",uploadname),
                      lines,perl=TRUE)
         vrapInput <- paste0(getOutputBaseName(),".rav")
-        lines <- sub("( Input File:\\s+)     .*$",paste0("\\1",vrapInput),
+        lines <- sub("^( *Input File:).*$",paste0("\\1","    ",vrapInput),
                      lines,perl=TRUE)
       } else if(input$vraptype == "RAV") {
         vrapupload <- inputVRAPFileName()
-        lines <- sub("^( *Copy of Input File.* .*)$",
+        lines <- sub("^( *Copy of Input File.*)$",
                      "",
                      lines,perl=TRUE)
-        lines <- sub("( Input File:\\s+)     .*$",paste0("\\1",vrapupload),
+        lines <- sub("( *Input File:).*$",paste0("\\1","   ",vrapupload),
                      lines,perl=TRUE)
       } else if(input$vraptype == "demo") {
         thedemofile <- inputVRAPFileName()
         friendly_demofile <- paste0("DEMO : ",
                                     names(EXAMPLES)[grepl(thedemofile,EXAMPLES)])
-        lines <- sub("( Input File:\\s+)     .*$",
-                     paste0("\\1",friendly_demofile),
+        lines <- sub("( *Input File:).*$",
+                     paste0("\\1","   ",friendly_demofile),
                      lines,perl=TRUE)
-        lines <- lines[!grepl("^( *Copy of Input File.* .*)$",lines)]
+        lines <- lines[!grepl("^( *Copy of Input File.*)$",lines)]
       }
       outfile <- file(filepath,"w")
       cat(lines, file=outfile, sep="\n")
@@ -629,7 +655,7 @@ shinyServer( function(input, output, session) {
   inputFileName <- reactive({
     filename <- NULL
     if (input$type=="XLSX") {
-      filename <- input$xlsxfile$name
+      filename <- xlsxFile()$name
     } else {
       filename <- "A & P Demo"
     }
@@ -641,7 +667,7 @@ shinyServer( function(input, output, session) {
   inputVRAPFileName <- reactive({
     filename <- NULL
     if (input$vraptype=="RAV") {
-      filename <- input$ravfile$name
+      filename <- ravFile()$name
     } else if (input$vraptype=="demo") {
       filename <- input$vrapdemofile
     } else {
@@ -729,7 +755,7 @@ shinyServer( function(input, output, session) {
   ## reactive wrapper for DM inputs: srFunc, covariates, output path
   
   inputdata <- reactive({
-    return(c(input$srFunc, input$covariates, outputPathBase()))
+    return(c(input$srFunc, input$covariates, input$analysisType, outputPathBase()))
   })
 
   ##################################################################
@@ -738,54 +764,65 @@ shinyServer( function(input, output, session) {
   ## - reactive wrappers
   ##################################################################
 
-  fravcontent <- function() {
-    fileInput('ravfile', 'Upload RAV file (.rav):', accept=".rav")
-  }
+  cancelRavUpload <- reactive({
+    tmp <- switches$resetravupload
+    isolate({switches$resetravupload <- FALSE})
+    tmp
+  })
   
-  frdcontent <- function() {
-    fileInput('rdfile', 'Upload RData file:', accept=".RData")
-  }
+  ravFile <- callModule(consecFileUpload, "ravfile", clear=cancelRavUpload,
+                        currentFileLabel="Current file",
+                        accept=c(".rav",".RAV", ".Rav"),
+                        buttonLabel="Upload RAV file (.rav):")
+
+  observe({
+    input$vraptype
+    switches$resetravupload <- TRUE
+  })
   
-  fxlsxcontent <- function() {
-    fileInput('xlsxfile', 'Choose xlsx file:',
-              accept=paste0("application/vnd.openxmlformats-",
-                            "officedocument.spreadsheetml.sheet"))
-  }
-  
-  output$ravFileInput <- renderUI({
-    input$type
-    fravcontent()
+  cancelRdUpload <- reactive({
+    tmp <- switches$resetrdupload
+    isolate(switches$resetrdupload <- FALSE)
+    tmp
   })
 
-  output$rdFileInput <- renderUI({
+  rdFile <- callModule(consecFileUpload, "rdfile", clear=reactive(FALSE),
+                       currentFileLabel="Current file:",
+                       accept=c(".RData"),
+                       buttonLabel="Upload RData file")
+
+  observe({
     input$type
-    frdcontent()
+    isolate(switches$resetrdupload <- TRUE)
+  })
+  
+  cancelXlsxUpload <- reactive({
+    tmp <- switches$resetxlsxupload
+    isolate({ switches$resetxlsxupload <- FALSE })
+    tmp
   })
 
-  output$xlsxFileInput <- renderUI({
+  xlsxFile <- callModule(consecFileUpload, "xlsxfile", clear=cancelXlsxUpload,
+                         currentFileLabel="Current file:",
+                         accept=paste0("application/vnd.openxmlformats-",
+                                       "officedocument.spreadsheetml.sheet"),
+                         buttonLabel="Upload xlsx file")
+  observe({
     input$type
-    fxlsxcontent()
+    switches$resetxlsxupload <- TRUE
   })
-
-  ## reactive renderer for DM run button
-  ## - may include VRAP run button
-  ## - may include run-VRAP checkbox
-
+  
   output$runbutton <- renderUI({
     if (inputAvailable()) {
       if (outputAvailable()) {
         list(
           actionButton(inputId="DMButton", label="Run Dynamic Model",
-                       title="Click to run DM on selected input") ##,
-          ## actionButton(inputId="VRAPButton2", label="Run VRAP on DM results",
-          ##              title="Click to run VRAP on current DM results")
+                       title="Click to run DM on selected input")
         )
       } else {
         list(
           actionButton(inputId="DMButton", label="Run Dynamic Model",
-                       title="Click to run DM on selected input") ##,
-          ## checkboxInput("runvrapseq", "Automatically run VRAP on DM results",
-          ##               FALSE)
+                       title="Click to run DM on selected input")
         )
       }
     } else {
@@ -897,11 +934,12 @@ shinyServer( function(input, output, session) {
   observe({
     ## triggers
     input$type
-    input$rdfile
-    input$xlsxfile
+    rdFile()
+    xlsxFile()
     input$srFunc
     input$covariates
-
+    input$analysisType
+    
     ## actions
     clearDMOutputs()
 
@@ -925,7 +963,7 @@ shinyServer( function(input, output, session) {
 
     if (runFromDM()) { return() } # don't clear output on
                                   # initial VRAP tab display
-    input$ravfile
+    ravFile()
 
     ## actions
     
@@ -961,11 +999,20 @@ shinyServer( function(input, output, session) {
   output$downloadtab <- renderUI({
     a <- vector("list")
     if (outputAvailable()) {
-      a <- list(
-        tags$h4('Download DM Results',style="align:center;"),
-        downloadButton('downloadDMReport', HTML('Report</br>(pdf)')),
-        downloadButton('downloadDMRav', HTML('Rav file</br>(rav)')),
-        downloadButton('downloadDMRData', HTML('Posteriors</br>(RData)')))
+      if (zipPngsAvailable()) {
+        a <- list(
+          tags$h4('Download DM Results',style="align:center;"),
+          downloadButton('downloadDMReport', HTML('Report</br>(pdf)')),
+          downloadButton('downloadDMRav', HTML('Rav file</br>(rav)')),
+          downloadButton('downloadDMRData', HTML('Posteriors</br>(RData)')),
+          downloadButton('downloadPlotsZip', HTML('Plots<br/>(zipped)')))
+      } else {
+        a <- list(
+          tags$h4('Download DM Results',style="align:center;"),
+          downloadButton('downloadDMReport', HTML('Report</br>(pdf)')),
+          downloadButton('downloadDMRav', HTML('Rav file</br>(rav)')),
+          downloadButton('downloadDMRData', HTML('Posteriors</br>(RData)')))
+      }
     } else {
       a <- includeHTML("html/download_help.html")
     }
@@ -1006,27 +1053,6 @@ shinyServer( function(input, output, session) {
     inputfilexlsx()
   })
 
-  ## scanfile <- function(filepath) {
-  ##   setWaitMsg(WAITSCANNINGMSG)
-  ##   showWaitMsg(FALSE)
-  ##   scanresponse <- scanclam(filepath)
-  ##   hideWaitMsg()
-  ##   errmsg <- NULL
-  ##   if ("SCANVIRUS" == scanresponse) {
-  ##     errmsg <- VIRUSDETECTIONMSG
-  ##   } else if ("SCANERROR" == scanresponse) {
-  ##     errmsg <- UPLOADERRORMSG
-  ##   }
-
-  ##   if (is.null(errmsg)) {
-  ##     return (filepath)
-  ##   } else {
-  ##     showUserMsg(errmsg)
-  ##     return (NULL)
-  ##   }
-  ## }
-
-  
   ##################################################################
   ## reactives for handling, naming, sanity-checking,
   ## and formatting input files
@@ -1035,22 +1061,27 @@ shinyServer( function(input, output, session) {
   ## DM XLSX input files
   
   inputfilexlsx <- reactive({
-    inFile <- input$xlsxfile
+    inFile <- xlsxFile()
     if (is.null(inFile)) return(NULL)
     if (is.null(scanfile(inFile$datapath))) {
-      isolate(output$xlsxFileInput <- renderUI(fxlsxcontent()))
+      isolate(switches$resetxlsxupload <- TRUE)
       return(NULL)
     } else {
       outfile = getOutputBaseName()
       xlsxerror <- try(
-        df.xlsx <- read.xlsx(inFile$datapath,
-                             XLSXSHEET, colNames=FALSE),
+        df.xlsx <- readXLSX(inFile$datapath, nominalcols=NOMINALXLSXCOLS,
+                          emptycol=EMPTYXLSXCOL),
         silent=TRUE
       )
       if (inherits(xlsxerror, "try-error")) {
         if (file.exists(inFile$datapath)) file.remove(inFile$datapath)
-        isolate(output$xlsxFileInput <- renderUI(fxlsxcontent()))
+        isolate(switches$resetxlsxupload <- TRUE)
         showUserMsg(XLSXERRORMSG)
+        return(NULL)
+      } else if (ncol(df.xlsx) <= EMPTYXLSXCOL) {
+        if (file.exists(inFile$datapath)) file.remove(inFile$datapath)
+        isolate(switches$resetxlsxupload <- TRUE)
+        showUserMsg(XLSXVERSIONMSG)
         return(NULL)
       } else {
         isolate({
@@ -1060,7 +1091,7 @@ shinyServer( function(input, output, session) {
             showUserMsg(msg)
             if (file.exists(inFile$datapath)) {
               file.remove(inFile$datapath)
-              output$xlsxFileInput <- renderUI(fxlsxcontent())
+              isolate(switches$resetxlsxupload <- TRUE)
             }
             return(NULL)
           } else {
@@ -1082,15 +1113,14 @@ shinyServer( function(input, output, session) {
   ## VRAP input files
   
   vrapinputfile <- reactive({
-    cat("vrapinputfile\n")
     input$DMButton
     input$vrapdemofile
     if (is.null(input$vraptype)) { return(NULL) }
     if (input$vraptype == "RAV") {
-      inFile <- input$ravfile
+      inFile <- ravFile()
       if (is.null(inFile)) return(NULL)
       if (is.null(scanfile(inFile$datapath))) {
-        isolate(output$ravFileInput <- renderUI(fravcontent()))
+        isolate({switches$resetravupload <- TRUE})
         return(NULL)
       } else {
         return(inFile$datapath)
@@ -1112,10 +1142,10 @@ shinyServer( function(input, output, session) {
   ## DM RDdata input files
   
   inputfilerd <- reactive({
-    inFile <- input$rdfile  
+    inFile <- rdFile()  
     if (is.null(inFile)) return(NULL)
     if (is.null(scanfile(inFile$datapath))) {
-      isolate(output$rdFileInput <- renderUI(frdcontent()))
+      isolate(switches$resetrdupload <- TRUE)
       return(NULL)
     } else {
       outfile = getOutputBaseName()
@@ -1136,12 +1166,12 @@ shinyServer( function(input, output, session) {
       setWaitMsg(VRAPPROCESSINGMSG)
       showWaitMsg()
 
-      ## clearVRAPOutputDirectory()
       clearVRAPOutputs()
 
       fileinput <- ifelse(is.null(infile), vrapinputfile(), infile)
       output <- Main(fileinput, OutFileBase=vrapOutputPathBase(),
-                     NRuns=howmanyruns, silent=TRUE, lcores=lcores)
+                     NRuns=howmanyruns, forceNewRav=FALSE, silent=TRUE,
+                     lcores=lcores)
 
       vrapFilenameFilter(runOnDMResults)
 
@@ -1211,9 +1241,6 @@ shinyServer( function(input, output, session) {
         output$info <- renderUI(includeHTML("html/defaultinfo.html"))
       } else {
         output$info <- renderUI(procout)
-        ## if (input$runvrapseq && outputAvailable()) {
-        ##   runVRAPfromDM()
-        ## }
       }
     }
   })
@@ -1247,7 +1274,6 @@ shinyServer( function(input, output, session) {
 
         ## change the working directory to induce the
         ## tool set to create temp files where they belong
-        
         owd <- setwd(getOutputDir())
         if (input$type == "XLSX" ||
               input$type == "Demo") {
@@ -1255,13 +1281,19 @@ shinyServer( function(input, output, session) {
             a.and.p.file <- inputfilexlsx()[1]
           } else if (input$type == "Demo") {
             a.and.p.file <-
-              file.path(path.package("DM"),"doc","DemoAandP.csv")
+              file.path(path.package("DM"),"doc","DemoAandP2.csv")
           }
-          ## options(warn=-1)
-          tmp <- readDMData(a.and.p.file=a.and.p.file,
-                            srFunc=inputdata()[1],
-                            covariates=inputdata()[2], silent=TRUE)
-          ## options(warn=0)
+          if (ONSERVER) options(warn=-1)
+          readInput <- list(SRfunction=inputdata()[1],
+                            covariates=inputdata()[2],
+                            analysisType=inputdata()[3]
+                            )
+          if(readInput$covariates=="yes"){
+            readInput$includeMarineSurvival <-"yes"
+            readInput$includeFlow <-"yes"
+          }
+          tmp <- readData(a.and.p.file=a.and.p.file, input=readInput, silent=TRUE)
+          if (ONSERVER) options(warn=0)
           dat <- tmp$dat
           
           ## zeros in broodYear distort the plots; replace them with NAs
@@ -1270,78 +1302,89 @@ shinyServer( function(input, output, session) {
           ap.input <- tmp$input
           population=tmp$input$population
           
-          # Get the priors list from the priors tab
+          ## Get the priors list from the priors tab
           ## This is the priors arg for new createBUGSdata()
-          logMu <- log(input$pMode)+(input$pSigma)^2
-          pTau <- 1/(input$pSigma)^2
-          cTau <- 1/(input$cSigma)^2
+
+          logMu <- log(input$pMode) + input$pSig^2
+          pTau <- 1/(input$pSig^2)
+          cTau <- 1/(input$cSig^2)
           msTau <- 1/(input$msSig^2)
           flowTau <- 1/(input$flowSig^2)
           inputPriors <- list(
-            prodPrior = c(logMu=logMu,tau=pTau,lowerBound=input$pRange[1],upperBound=input$pRange[2]),
-            logCapPrior = c(mu=input$cMu,tau=cTau,lowerBound=input$cRange[1],upperBound=input$cRange[2]),
-            msCoefPrior = c(mu=input$msMu,tau=msTau,lowerBound=input$msRange[1],upperBound=input$msRange[2]),
-            flowCoefPrior = c(mu=input$flowMu,tau=flowTau,lowerBound=input$flowRange[1],upperBound=input$flowRange[2]),
+            prodPrior = c(logMu=logMu,tau=pTau,lowerBound=input$pRange[1],
+                          upperBound=input$pRange[2]),
+            logCapPrior = c(mu=input$cMu,tau=cTau,lowerBound=input$cRange[1],
+                            upperBound=input$cRange[2]),
+            msCoefPrior = c(mu=input$msMu,tau=msTau,lowerBound=0),
+            flowCoefPrior = c(mu=input$flowMu,tau=flowTau,lowerBound=0),
             tauPrior = c(gamma1=1e-4,gamma2=1e-4)
           )
-                    ## run BUGS and get the posteriors
+          ## run BUGS and get the posteriors
           gperror <-
             try(
-              tmp <- getPosteriors(dat, ap.input, priors=inputPriors)
+              tmp.dmObj <- runModel(a.and.p.file, ap.input, priors=inputPriors)
             )
           if (inherits(gperror, "try-error")) {
             hideWaitMsg()
-            msg <- paste0("Error in DM::getPosteriors\n",
-                          attr(gperror, "condition"))
+            msg <- paste0("Error in DM::runModel\n", attr(gperror, "condition"))
             msg1 <- htmlize(msg,"posterrorupper")
-            msg2 <- htmlize(paste0("Please contact the maintainer",
-                                   " of the application."),
-                            "posterrorlower")
-            ## msg <- htmlize(msg,"posterrorupper")
+            msg2 <- htmlize("", "posterrorlower")
             showUserMsg(paste0(msg1, msg2))
             modpath <- file.path(getOutputDir(), "mod1.txt")
             if(file.exists(modpath)) file.remove(modpath)
             setwd(owd)
             return(NULL)
           }
-          result = tmp$result
-          tDat = tmp$tDat
+          ########plots
+          plotResults(tmp.dmObj, plotDest="png", plotName=outputPathBase())
+          zipPngs(owd)
           
+          mlEst = findOptimum(dat, ap.input)
+          
+          ##result = tmp$result
+          tDat = tmp$tDat
+
           ## Write posteriors to .csv and RData file
-          writeResultsToFile(population, ap.input, dat, tDat, result,
-                             file=outputPathBase())
+          writeResultsToFile(ap.input, dat, tDat, mlEst, tmp$bdat,
+                             filename=outputPathBase())
           filename=outputPath(".RData")
           outfilename=outputPathBase()
-        } else if(input$type == "RData"){
+        } else if(input$type == "RData") {
           filename=inputfilerd()[1]
           outfilename=outputPathBase()
           file.copy(filename, outputPath(".RData"), overwrite=TRUE)
         }
         
-        output$plot1=renderPlot( plotAandPData(filename) )
+        fig.cap = plotResults(tmp.dmObj, plotType="a.and.p.data", plotDest="none")
+        output$plot1=renderPlot( plotResults(tmp.dmObj, plotType="a.and.p.data", plotDest="default") )
+        #Don't know how to create caption, fig.cap above is the caption.
         output$caption1 <-
-          renderUI(includeHTML("html/aandpcaption.html"))
+          renderUI(list(HTML(fig.cap),includeHTML("html/captionfooter.html")))
         
-        output$plot2=renderPlot(plotPosteriors(filename))
+        fig.cap = plotResults(tmp.dmObj, plotType="SR", plotDest="none")
+        output$plot2=renderPlot( plotResults(tmp.dmObj, plotType="SR", plotDest="default") )
+        #Don't know how to create caption, fig.cap above is the caption.
         output$caption2 <-
-          renderUI(includeHTML("html/posteriorcaption.html"))
+          renderUI(list(HTML(fig.cap),includeHTML("html/captionfooter.html")))
 
         rendererror <- 
           try(
-            Report1(a.and.p.file=NULL, RData.file=filename,
-                    output.file=outfilename, srFunc=inputdata()[1],
-                    covariates=inputdata()[2], show.file=FALSE,
+            Report1(dmObj.RData.file=filename, output.file=outfilename,
                     rav.options=list(numRuns=DMNUMRUNS)),
             silent=TRUE)
+
         if (inherits(rendererror, "try-error")) {
           tools::texi2pdf(paste(outfilename,".tex",sep=''))
         }
         setwd(owd)
+
         ## clean-up
         badfiles <- Sys.glob(paste0(outfilename,'*'))
         badfiles <- badfiles[!(str_detect(badfiles,"[.]pdf") |
                                  str_detect(badfiles,"[.]RData") |
-                                 str_detect(badfiles,"[.]rav"))]
+                                 str_detect(badfiles,"[.]rav") |
+                                 str_detect(badfiles,"[.]png") |
+                                 str_detect(badfiles,"_plots.zip"))]
         file.remove(badfiles)
         modpath <- file.path(getOutputDir(), "mod1.txt")
         if(file.exists(modpath)) file.remove(modpath)
@@ -1359,7 +1402,7 @@ shinyServer( function(input, output, session) {
   }
   
   ##################################################################
-  ## output file downloader handlers
+  ## output file downloader handlers and helper routines
   ##################################################################
 
   ## DM downloaders
@@ -1378,6 +1421,35 @@ shinyServer( function(input, output, session) {
     contentType = "text"
   )
 
+  ## extra plot downloader & zip creator
+
+  output$downloadPlotsZip <- downloadHandler(
+    filename <- function() {paste0(getOutputBaseName(), "_plots.zip")},
+    content <- function(file) {file.copy(outputPath("_plots.zip"), file)}
+  )
+
+  zipPngs <- function(appRoot) {
+    ret <- NULL
+    owd <- setwd(getOutputDir())
+    pngs <- Sys.glob("*.png")
+    toc <- file.path(appRoot, "html", "plottoc.txt")
+    if (length(pngs) > 0) {
+      if (file.exists(toc)) {
+        file.copy(toc, "plots_readme.txt")
+        pngs <- c(pngs, Sys.glob("plots_readme.txt"))
+      }
+      zipfile <- paste0(outputPathBase(), "_plots.zip")
+      zip(zipfile, pngs)
+      ret <- file.path(getOutputDir(),zipfile)
+    }
+    setwd(owd)
+    ret
+  }
+
+  zipPngsAvailable <- function() {
+    zipfile <- paste0(outputPathBase(), "_plots.zip")
+    file.exists(zipfile)
+  }
   
   ## VRAP downloaders
 
@@ -1393,7 +1465,7 @@ shinyServer( function(input, output, session) {
     }
   }
   
-  output$downloadVRAPsum = downloadHandler(
+  output$downloadVRAPsum <- downloadHandler(
     filename = function() {
       paste0(getVRAPBaseName(),".sum")},
     content = function(file) {
@@ -1402,7 +1474,7 @@ shinyServer( function(input, output, session) {
     contentType="text"
   )
   
-  output$downloadVRAPbyr = downloadHandler(
+  output$downloadVRAPbyr <- downloadHandler(
     filename = function() {
       paste0(getVRAPBaseName(),".byr")},
     content = function(file) {
@@ -1411,7 +1483,7 @@ shinyServer( function(input, output, session) {
     contentType="text/csv"
   )
 
-  output$downloadVRAPesc = downloadHandler(
+  output$downloadVRAPesc <- downloadHandler(
     filename = function() {
       paste0(getVRAPBaseName(),".esc")},
     content = function(file) {
@@ -1422,7 +1494,7 @@ shinyServer( function(input, output, session) {
 
   ## VRAP demo file downloader
 
-  output$downloadDemo = downloadHandler(
+  output$downloadDemo <- downloadHandler(
     filename = function() {
       if (!is.null(input$vraptype) && input$vraptype=="demo") {
         if (!is.null(input$vrapdemodownload)) {
@@ -1446,28 +1518,32 @@ shinyServer( function(input, output, session) {
   ##################################################################
   output$priorsplot <- renderPlot({
     par(mfrow=c(2,2))
-    x <- seq(0,63,.1)
+    x <- seq(0,60,.1)
+    pVar <- input$pSig^2
     ix <- rep(1, length(x)); ix[x>input$pRange[2]]=0; ix[x<input$pRange[1]]=0
-    plot(x, dlnorm(x,log(input$pMode)+input$pSigma^2,sdlog=input$pSigma)*ix, 
+    plot(x, dlnorm(x,log(input$pMode)+pVar,sqrt(pVar))*ix, 
          main='Production Prior',xlab='Production',ylab='Density',type='l',bty='n')
+    ## plot(x, dlnorm(x,log(input$pMode)+input$pSigma^2,sdlog=input$pSigma)*ix, 
+    ##    main='Production Prior',xlab='Production',ylab='Density',type='l',bty='n')
     
-    x <- seq(0,23,.1)
+    x <- seq(0,20,.1)
     ix <- rep(1, length(x)); ix[x>input$cRange[2]]=0; ix[x<input$cRange[1]]=0
-    plot(x, dnorm(x,mean=input$cMu,sd=input$cSigma)*ix, 
+    plot(x, dnorm(x,mean=input$cMu,sd=input$cSig)*ix, 
          main='Log Capacity Prior',xlab='Log Capacity',ylab='Density',type='l',bty='n')
     
-    # Code for tau prior removed
     # x <- seq(1e-5,1e-2,1e-5)
     # plot(x, dgamma(x,10^input$tauShape,10^input$tauRate), 
     #      main='tau Prior',xlab='tau',ylab='Density',type='l',bty='n')
     
-    x <- seq(0,101,.01)
-    ix <- rep(1, length(x)); ix[x>input$msRange[2]]=0; ix[x<input$msRange[1]]=0
+    ## x <- seq(0,101,.01)
+    ## ix <- rep(1, length(x)); ix[x>input$msRange[2]]=0; ix[x<input$msRange[1]]=0
+    x <- seq(-20,20,0.01)
+    ix <- rep(1, length(x)); ix[x<0]=0
     plot(x,dnorm(x,mean=input$msMu,sd=input$msSig)*ix,
          main='marine survival coef Prior',xlab='ms coef',ylab='Density',type='l',bty='n')
 
-    x <- seq(0,5001,.01)
-    ix <- rep(1, length(x)); ix[x>input$flowRange[2]]=0; ix[x<input$flowRange[1]]=0
+    ## x <- seq(0,5001,.01)
+    ## ix <- rep(1, length(x)); ix[x>input$flowRange[2]]=0; ix[x<input$flowRange[1]]=0
     plot(x,dnorm(x,mean=input$flowMu,sd=input$flowSig)*ix,
          main='flow coef Prior',xlab='flow coef',ylab='Density',type='l',bty='n')
   }, height = 400, width = 600 )

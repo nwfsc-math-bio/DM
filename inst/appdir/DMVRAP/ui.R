@@ -1,7 +1,27 @@
 #.libPaths(c("/usr/lib64/R/shiny_library",.libPaths()))
 library("appFrame")
 
-source("common.R")  ## import EXAMPLES, shared with server.R
+source("version.R")
+
+appTitle <- paste0("<span title='Shiny app version / DM version /",
+                   " VRAP version'",
+                   "style='font-weight:700;font-size:24px'>",
+                   shiny.version)
+
+vrapVersion <- packageVersion("VRAP")
+dmVersion <- packageVersion("DM")
+
+if (!is.null(dmVersion) && length(dmVersion) > 0) {
+  appTitle <- paste0(appTitle, " / ", dmVersion)
+} else {
+  appTitle <- paste0(appTitle, " / ")
+}
+
+if (!is.null(vrapVersion) && length(vrapVersion) > 0) {
+  appTitle <- paste0(appTitle, " / ", vrapVersion)
+}
+
+appTitle <- paste0(appTitle, "</span>")
 
 shinyUI(
   fluidPage(
@@ -47,7 +67,8 @@ shinyUI(
       )
     ),
     appFrameHeaderFixed(),
-    headerPanel("Dynamic Model + VRAP 1.1"),
+    ## headerPanel("Dynamic Model + VRAP 1.1"),
+    headerPanel(HTML(appTitle), windowTitle="DM + VRAP"),
     conditionalPanel(
       condition=paste(
         "(updateBusy()) || ",
@@ -82,6 +103,7 @@ shinyUI(
         value = "dmtab",
         sidebarLayout(
           sidebarPanel(
+            width=5,
             div(id="spacer"," ",style="min-height:35px;float:left"),
             div(uiOutput("runbutton")),
             tags$br(),
@@ -95,12 +117,13 @@ shinyUI(
                         ),
             conditionalPanel(
               "input.type == 'XLSX'",
-              uiOutput("xlsxFileInput")
+              consecFileUploadInput("xlsxfile","Choose xlsx file"),
+              br()
             ),
             conditionalPanel(
               "input.type == 'RData'",
-              uiOutput("rdFileInput"),
-              tags$h5(includeHTML("html/rdataclickrun.html"))
+              consecFileUploadInput("rdfile", "Upload RData file"),
+              br()
             ),
             conditionalPanel(
               paste("input.type == 'AP' || input.type == 'XLSX' ",
@@ -112,17 +135,13 @@ shinyUI(
               selectInput("covariates",
                           "Include Marine Survival and Stream Flow covariates?",
                           list("No" = "no", 
-                               "Yes" = "yes"))),
-            conditionalPanel(
-              "input.type == 'XLSX'"
-              ## tags$h5(includeHTML("html/xlsxclickrun.html"))
-            ),
-            conditionalPanel(
-              "input.type == 'Demo'"
-              ## tags$h5(includeHTML("html/democlickrun.html"))
-            )
+                               "Yes" = "yes")), 
+              selectInput("analysisType", "Analysis Type:",
+                          list("DM" = "DM", 
+                               "SS" = "SS")))
           ),
           mainPanel(
+            width=7,
             tabsetPanel(
               id="output",
               tabPanel("Info", uiOutput("info")),
@@ -152,7 +171,8 @@ shinyUI(
             div(uiOutput("vraptypeselect")),
             conditionalPanel(
               "input.vraptype == 'RAV'",
-              uiOutput("ravFileInput")
+              consecFileUploadInput("ravfile","Upload RAV file (.rav)"),
+              br()
             ),
             conditionalPanel(
               "input.vraptype == 'demo'",
