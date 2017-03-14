@@ -1,19 +1,21 @@
 
 ## export functions
 export(
-getPosteriors,
-readDMData,
+runModel,
+plotResults,
+plotPriors,
+readData,
+createPriors,
+createRAVfile,
 Report1,
-plotAandPData,
-plotPosteriors,
-info,
 writeResultsToFile,
-DM,SelectPrior,
+DM,
+SelectPrior,
 createRAVfile,
 findOptimum,
-SSTfuncDM,
-selectSR
+getPostDraws,
+centerProdCap,
+uncenterProdCap
 )
 
 ## Imports
-importFrom(MASS, mvrnorm)
