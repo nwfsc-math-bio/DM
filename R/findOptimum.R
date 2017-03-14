@@ -75,10 +75,10 @@ fndOpt <- function(x){
     break
   }
   
-  result <- GenSA(paramInits,lower=rep(-100,4), upper=rep(100,4), SSTfunc, dat=dat, SRfunc=selectSR(input$SRfunction), input=input, control=list(max.time=10,temperature=20000))
+  result <- GenSA(paramInits,lower=rep(-100,length(paramInits)), upper=rep(100,length(paramInits)), SSTfunc, dat=dat, SRfunc=selectSR(input$SRfunction), input=input, control=list(max.time=10,temperature=20000))
   for(i in 1:2){
     result <- nlm(SSTfunc, p=result$par, dat=dat, SRfunc=selectSR(input$SRfunction), input=input, hessian=TRUE, gradtol = 1e-8)
-    result <- GenSA(result$estimate,lower=rep(-100,4), upper=rep(100,4), SSTfunc, dat=dat, SRfunc=selectSR(input$SRfunction), input=input, control=list(max.time=5))
+    result <- GenSA(result$estimate,lower=rep(-100,length(paramInits)), upper=rep(100,length(paramInits)), SSTfunc, dat=dat, SRfunc=selectSR(input$SRfunction), input=input, control=list(max.time=5))
   }
   result <- nlm(SSTfunc, p=result$par, dat=dat, SRfunc=selectSR(input$SRfunction), input=input, hessian=TRUE, gradtol = 1e-8)
   
