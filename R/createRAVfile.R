@@ -32,7 +32,7 @@
 #'   \item{minAge}{(2)}
 #'   \item{maxAge}{(5)}
 #'   \item{convergeCrit}{(0.001)}
-#'   \item{debugFlag}{("NO") "NO"/"YES"}
+#'   \item{centerCov}{("NO") "NO"/"YES"}
 #'   \item{marineSurvType}{("Autoc") "Autoc"/"Cycle"/"Trend"}
 #'   \item{flowType}{("Autoc") "Autoc"/"Cycle"/"Trend"}
 #'   \item{modelDepensation}{("NO") "NO"/"YES"}
