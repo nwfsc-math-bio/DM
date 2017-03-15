@@ -9,7 +9,6 @@
 #' management error and base exploitation rate must be included 
 #' as a parameter. This could be calculated with the SR params, 
 #' maturation rates, natMort, and harvest.
-#' 
 #' @param bdat data for the bayesian specification of a DM run
 #' @param input a list with the other values needed for a DM run. 
 #' The following are examples naturalMort, analysisType = "DM", SRfunction, includeMarineSurvival, includeFlow
@@ -51,6 +50,7 @@
 #'   \item{bufferMin}{(0)}
 #' }     
 #' @return nothing is returned but the rav file is written.
+#' 
 createRAVfile = function(
   bdat,
   input,
