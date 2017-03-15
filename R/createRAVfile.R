@@ -1,5 +1,4 @@
 #' @title Create rav file.
-#' 
 #' @description 
 #' This function takes the output from the DM model and creates a 
 #' rav file that can be used forrunning the VRAP simulations. 
