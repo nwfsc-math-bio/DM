@@ -50,6 +50,7 @@
 #'   \item{bufferMin}{(0)}
 #' }     
 #' @return nothing is returned but the rav file is written.
+#' 
 createRAVfile = function(
   bdat,
   input,
