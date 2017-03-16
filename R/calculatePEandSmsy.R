@@ -20,17 +20,14 @@ calculatePEandSmsy <- function(input, dat, postdraws){
   # transform (uncenter) capacity and productivity if the covariates were centered in the Bayesian Analysis
   logFlowMu <- mean(log(dat$flow[dat$broodYear %in% input$firstYear:input$lastYear]))
   logMSMu <- mean(log(dat$marineSurvivalIndex[dat$broodYear %in% input$firstYear:input$lastYear]))
-  flowCorrect <- if(input$centerFlow & input$includeFlow=="yes") exp(-postdraws$flowCoef*logFlowMu) else 1
-  msCorrect <- if(input$centerMS & input$includeMarineSurvival=="yes") exp(-postdraws$msCoef*logMSMu) else 1
-  prod <- postdraws$prod * flowCorrect * msCorrect
-  if(input$SRfunction %in% c("bevertonHolt","hockeyStick")){
-    cap <- exp(postdraws$logCap) * flowCorrect * msCorrect
-  }else{
-  	cap <- exp(postdraws$logCap)
-  }
 
-  # transformed (as above) to agree with parameterization used in VRAP
-  tDat <- data.frame(a=prod,b=cap,c=postdraws$msCoef,d=postdraws$flowCoef)
+  # set up list for VRAP
+  tDat <- data.frame(
+    a=postdraws$prod,
+    b=exp(postdraws$logCap),
+    c=postdraws$msCoef,
+    d=postdraws$flowCoef
+    )
   
   # if anaylsisType = "SS" then add avg maturation rates
   if(input$analysisType=="SS"){
@@ -51,7 +48,9 @@ calculatePEandSmsy <- function(input, dat, postdraws){
   # in VRAP the covariates are entered as: M^c exp(dF)
   # thus the unlogged ms is used; F is logged flow
   meanInd <- numeric(n)
-  yrInd <- which(dat$broodYear %in% input$MSYfirstYear:input$MSYlastYear) # years used to calculate average Environmental Conditions (not always the same as first and last Year)
+  yrInd <- which(dat$broodYear %in% input$MSYfirstYear:input$MSYlastYear) 
+  # years used to calculate average Environmental Conditions 
+  # (not always the same as first and last Year)
   yrIndMSY <- which(dat$broodYear %in% input$firstYear:input$lastYear)
   logFlowMu <- mean(log(dat$flow)[yrIndMSY])
   logMSindMu <- mean(log(dat$marineSurvivalIndex)[yrIndMSY])
