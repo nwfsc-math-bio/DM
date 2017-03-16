@@ -26,11 +26,12 @@ writeBUGScode <- function(input=NULL, outputText=FALSE){
       srFunc=input$SRfunction,
       includeMarineSurvival=input$includeMarineSurvival,
       includeFlow=input$includeFlow,
-      useAEQrecruits=T,
+      useAEQrecruits=TRUE,
       AEQmean=SS,
       stateSpace=SS,
       estimateMaturation=SS,
-      fixedObsError=input$escapementObsSD
+      fixedObsError=input$escapementObsSD,
+      age2correction=0.5
       )
   }
     
@@ -101,13 +102,15 @@ model
     wildEscapementAge3to5[year] <- wildEscapementAge3to5obs[year]
   }
 
-",ifelse(mod$estimateMaturation,"
+",ifelse(mod$estimateMaturation,paste("
 
   # age composition data
   for(i in 1:aYears){
     A[i,1:4] ~ dmulti(App[i,1:4],Asum[i]) #-A[i,1])  # should probably include something here to allow for over dispersion
     ApSum[i] <- sum(Ap[i,1:4])
-    for(age in 2:5){ 
+    Ap[i,1] <- escapement[AgeYears[i]-2, 1]*",mod$age2correction," # correct for lower prob of seeing age 2 fish
+    App[i,1] <- Ap[i,1]/ApSum[i] 
+    for(age in 3:5){ 
       # ages 2:5 predicted with escapement. This assumes the hatchery and natural age composition are comparable
       Ap[i,age-1] <- escapement[AgeYears[i]-age, age-1] 
       #Ap[i,age-1] ~ dlnorm(log(escapement[AgeYears[i]-age, age-1]),1/0.25) # ALLOW FOR OVER-DISPERSION!
@@ -143,7 +146,7 @@ model
     rTau[age-1] <- 1/(rSD[age-1]*rSD[age-1])
     rSD[age-1] ~ dunif(0.01,3)
   }
-  ",""),"
+  ",sep=""),""),"
 
   # priors
   prod ~ dlnorm(prodPrior[1],prodPrior[2])I(prodPrior[3],prodPrior[4])
