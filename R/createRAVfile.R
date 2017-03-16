@@ -1,4 +1,5 @@
 #' @title Create rav file.
+#' 
 #' @description 
 #' This function takes the output from the DM model and creates a 
 #' rav file that can be used forrunning the VRAP simulations. 
@@ -9,6 +10,7 @@
 #' management error and base exploitation rate must be included 
 #' as a parameter. This could be calculated with the SR params, 
 #' maturation rates, natMort, and harvest.
+#' 
 #' @param bdat data for the bayesian specification of a DM run
 #' @param input a list with the other values needed for a DM run. 
 #' The following are examples naturalMort, analysisType = "DM", SRfunction, includeMarineSurvival, includeFlow
@@ -30,7 +32,7 @@
 #'   \item{minAge}{(2)}
 #'   \item{maxAge}{(5)}
 #'   \item{convergeCrit}{(0.001)}
-#'   \item{centerCov}{("NO") "NO"/"YES"}
+#'   \item{centerCovFlag}{("NO") "NO"/"YES"}
 #'   \item{marineSurvType}{("Autoc") "Autoc"/"Cycle"/"Trend"}
 #'   \item{flowType}{("Autoc") "Autoc"/"Cycle"/"Trend"}
 #'   \item{modelDepensation}{("NO") "NO"/"YES"}
@@ -50,7 +52,6 @@
 #'   \item{bufferMin}{(0)}
 #' }     
 #' @return nothing is returned but the rav file is written.
-#' 
 createRAVfile = function(
   bdat,
   input,
@@ -68,7 +69,7 @@ createRAVfile = function(
     minAge = 2,
     maxAge = 5,
     convergeCrit = 0.001,
-    debugFlag = "NO",
+    centerCovFlag = "NO",
     marineSurvType = "Autoc", #"Cycle" #"Trend" #
     flowType = "Autoc", #"Cycle" #"Trend" #
     modelDepensation = "NO",
@@ -83,9 +84,10 @@ createRAVfile = function(
     manageErrorA = 65.3946, # (derived from estimates from Puget Sound for all except STL and WRS)
     manageErrorB = 0.0158,
     lowerEscThreshold = 200, 
+    msySpawners=NULL,
     numYearsToAvg = 5,
     runType = "ER",
-    bufferMin = 0 
+    bufferMin = 0
     )
   
   # check to make sure options list is OK
@@ -177,7 +179,7 @@ createRAVfile = function(
     
   # SR parameters
   if(estType=="median"){
-    SRparameters <- med(as.matrix(tDat[,c("a","b","c","d")]),method="Tukey")$median
+    SRparameters <- med(as.matrix(tDat[,c("a","b","c","d")]),method="Spatial")$median
   }else{
   	SRparameters <- tDat[sim,c("a","b","c","d")]
   }
@@ -201,6 +203,12 @@ createRAVfile = function(
   }else{
     msParams <- NULL
   }
+  
+  # Set the centering flag
+  options$centerCovFlag = "NO"
+  if(input$centerFlow | input$centerMS) options$centerCovFlag = "YES"
+  if((input$centerFlow + input$centerMS) == 1)
+    stop("Cannot run VRAP with only one covariate centered.  Center both or center none.\n")
   
   # Mean and CV  for flow (or other fw) index (exp(dF))
   flowInd <- if(input$centerFlow) bdat$logFlow+logFlowMu else bdat$logFlow
@@ -262,12 +270,20 @@ createRAVfile = function(
   
   # Upper escapement threshold (MSY);  # yrs to ave. 
   # Martin Liermann notes:
-  #    Notice that the SMSY value can very large when the model is unconstrained and there is little information
+  #    Notice that the SMSY value can very large when the model 
+  #    is unconstrained and there is little information
   #    in the data about the capacity.
-  if(estType=="median"){
-    msySpawners <- median(tDat$Smsy)
+  if(is.null(options$msySpawners)){
+    if(estType=="median"){
+      tmp=tDat$Smsy
+      tmp[is.na(tmp)]=tDat$b[is.na(tmp)] 
+      #NA when proc<1, replace with max SMSY value possible
+      msySpawners <- median(tmp)
+    }else{
+      msySpawners <- tDat$Smsy[sim]
+    }
   }else{
-    msySpawners <- tDat$Smsy[sim]
+    msySpawners <- options$msySpawners
   }
   
   # Norma Jean Sands: runType
@@ -315,9 +331,9 @@ createRAVfile = function(
   }else if(input$analysisType=="SS"){ # use multivariate median to summarize the posterior
   	if(estType=="median"){
   	  if(var(tDat$mat4)<0.001){  
-        averageMaturationRate <- c(med(as.matrix(tDat[,c("mat1","mat2","mat3")]),method="Tukey",mustdith=TRUE)$median,1)
+        averageMaturationRate <- c(med(as.matrix(tDat[,c("mat1","mat2","mat3")]),method="Spatial",mustdith=TRUE)$median,1)
       }else{
-        averageMaturationRate <- med(as.matrix(tDat[,c("mat1","mat2","mat3","mat4")]),method="Tukey",mustdith=TRUE)$median
+        averageMaturationRate <- med(as.matrix(tDat[,c("mat1","mat2","mat3","mat4")]),method="Spatial",mustdith=TRUE)$median
       }
     }else{
       averageMaturationRate <- tDat[sim,c("mat1","mat2","mat3","mat4")]
@@ -339,7 +355,7 @@ createRAVfile = function(
     options$numYears,", Number of years\n",
     options$minAge,", ", options$maxAge,", Minimum and maximum age (for now this is fixed; do not change)\n",
     options$convergeCrit,", Convergence criterion (% error) for target ER\n",
-    options$debugFlag,", Debug file flag\n",
+    options$centerCovFlag,", ", ifelse(options$centerCovFlag=="YES",paste(logMSMu,logFlowMu,"",sep=", "),""), "Center covariate flag",ifelse(options$centerCovFlag=="YES"," and log MS and log Flow mean",""),"\n",
     funcType,", Spawner Recruit function (Ric2;Ric3;Ric4; Bev2;Bev3;Bev4; Hoc2;Hoc3;Hoc4)\n",
     paste(formatC(as.numeric(SRparameters[1:numParams]),digits=8,format="f"),sep="",collapse=","),", S/R a; b parameters; c (Marine); d (Freshwater)\n",
     ifelse(input$includeMarineSurvival=="yes",paste(marineSurvMu,marineSurvCV,sep=", "),""),ifelse(input$includeMarineSurvival=="yes",", ",""),"Mean and CV  for marine survival index (M^c)\n",
