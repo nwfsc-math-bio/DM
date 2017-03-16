@@ -9,6 +9,11 @@ Fixed maximization
 * createPriors: removed constraint that flowCoef was negative; added upper and lower bounds to msCoef and flowCoef
 * throughout: changed flowCoef to be exp(p*cov) same as VRAP
 
+Added centerCov to rav file in place of Debug line.  This tells VRAP to center the covariates in the SR function (in CompRecruits.R)
+Replace depth:::med function with Gmedian package function since depth needs X11 package which is not available for unix server.
+Added msySpawners to createRAVfile so you can specify specific upper threshold to use.
+
+
 Version 1.6
 -----------
 Big clean-up and standardization of naming within functions
