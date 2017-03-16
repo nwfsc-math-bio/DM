@@ -19,3 +19,4 @@ uncenterProdCap
 )
 
 ## Imports
+importFrom(Gmedian, Gmedian)
