@@ -11,13 +11,14 @@
 #' @param filename name to give the outputfiles file
 #' 
 #' @return nothing is returned but the csv and RData files are written.
-writeResultsToFile <- function(input, dat, tDat, 
-                               mlEst, bdat, filename){
+writeResultsToFile <- function(input, dat, tDat, mlEst, bdat, plist, filename){
+  file <- filename
   baseFileName = filename
   if(str_sub(file,-4)==".csv") baseFileName = str_sub(file,1,-5)
   if(str_sub(file,-4)==".rda") baseFileName = str_sub(file,1,-5)
   if(str_sub(file,-6)==".RData") baseFileName = str_sub(file,1,-7)
   
   write.csv(tDat, file=paste(baseFileName, ".csv", sep=""), row.names=FALSE)
-  save(input, dat, mlEst, tDat, bdat, file=paste(baseFileName, ".RData", sep=""))
+  save(input, dat, mlEst, tDat, bdat, plist,
+       file=paste(baseFileName, ".RData", sep=""))
 }
