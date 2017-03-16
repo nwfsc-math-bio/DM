@@ -26,6 +26,7 @@
 #'   \item{centerMS}{TRUE: set mean of the covariate zero}
 #'   \item{centerFlow}{TRUE: set mean of the covariate zero}
 #'   \item{escapementObsSD}{NULL}
+#'   \item{age2correction}{1.0: correction for seeing fewer age 2 fish when sampling for age composition. (detection probability for age 2 fish / detection probability for ages 3-5 fish) }
 #' }  
 #' @param silent Whether to print progress messages.
 #' @return The result is a list with dat and input for the DM functions
@@ -73,7 +74,8 @@ readData = function(a.and.p.file, input, folder = "./", silent=FALSE){
     flowCoef = NA,
     centerMS = TRUE,
     centerFlow = TRUE,
-    escapementObsSD = NULL
+    escapementObsSD = NULL,
+    age2correction = 1
   )
   
   for(iName in names(input)){
