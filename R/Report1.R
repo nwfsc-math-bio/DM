@@ -15,7 +15,7 @@ Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
 
   if (!missing(dmObj.RData.file)) {
     rdnames <- load(dmObj.RData.file)
-    reqnames <- c("input", "dat", "bdat", "result", "tDat")
+    reqnames <- c("input", "dat", "mlEst", "tDat", "bdat", "plist")
     missing <- reqnames[!(reqnames %in% rdnames)]
     if (length(missing) > 0) {
       stop(paste(paste(missing,collapse=','), "missing in RData\n"))
@@ -33,7 +33,21 @@ Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
     includeFlow <- input$includeFlow
     if (is.null(includeFlow)) {
       stop("includeFlow missing in RData$input")
-    }  } else {
+    }
+
+    dmObj <- list()
+    dmObj$input <- input
+    dmObj$dat <- dat
+    dmObj$mlEst <- mlEst
+    dmObj$tDat <- tDat
+    dmObj$bdat <- bdat
+
+    dmObj$jagsOut <- plist$jagsOut
+    dmObj$otherDat <- plist$otherDat
+    dmObj$priors <- plist$priors
+    dmObj$calcInits <- function() { plist$theinits }
+
+  } else {
     input <- dmObj$input
     population <- input$population
     includeMarineSurvival <- input$includeMarineSurvival
@@ -45,14 +59,19 @@ Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
     bdat <- dmObj$bdat
   }
 
-  #Not sure why I want to create rav file for the report
-  createRAVfile(bdat, input, tDat, dat,
-                estType = "median",
-                filename=paste0(output.file,".rav"),
-                rav.options=rav.options)
+  ## knitr will attempt to use the input directory as a work directory
+  ## for its intermediate files.  This fails when the input directory
+  ## is the package directory and the package is invoked from a server.
+  ## Copy the Rmd file to the output directory and use that as the
+  ## input path.  knitr will now create its temporaries in that directory,
+  ## where it must have write permission anyway.
                 
   pkgpath <- find.package("DM")
   path=file.path(pkgpath, "doc", "Report1-knitr.Rmd")
+  rmdPath <- dirname(output.file)
+  rmdPath <- file.path(rmdPath, "Report1-knitr.Rmd")
+  file.copy(path, rmdPath)
+  path <- rmdPath
   for(out in output_format){
     extra = ""
     file.suffix = str_split(out,"_")[[1]][1]
@@ -64,10 +83,4 @@ Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
                     output_file=paste(output.file, extra,".",file.suffix,sep=""),
                     output_dir=getwd())
   }
-  # rmarkdown::render(path, output_format="pdf_document", 
-  #                   output_file=paste(output.file,".pdf",sep=""),
-  #                   output_dir=getwd())
-  # path=file.path(pkgpath, "doc", "Report1-knitr.xRnw")
-  # knit2pdf(path, output=paste(output.file,".tex",sep=""), envir=sys.nframe(),
-  #          quiet=TRUE)
 }
