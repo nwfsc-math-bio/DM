@@ -95,9 +95,9 @@ createRAVfile = function(
   if(!all(names(rav.options) %in% names(tmp.options))) stop("incorrect rav.option names")
   
   # replace default options with value from options list
-  if(!is.null(names(options))){
-    for(nam in names(options)){
-      tmp.options[nam]=options[nam]
+  if(!is.null(names(rav.options))){
+    for(nam in names(rav.options)){
+      tmp.options[nam]=rav.options[nam]
     }
   }
   options=tmp.options
