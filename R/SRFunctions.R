@@ -63,9 +63,9 @@ selectSR <- function(x){
 # generate function that calculates Smsy for the desired SR function 
 selectSmsy <- function(funcName){
   # should change to (1-lambert_W0(exp(1-prod)))*cap # from Mark's paper (uses library gsl) (doesn't seem to work check params)
-  if(funcName=="ricker") ff <- function(prod,cap) ifelse(prod>1,log(prod)*cap*(0.5-0.07*log(prod)),0) # approximation from Hilborn
-  else if(funcName=="bevertonHolt") ff <- function(prod,cap) ifelse(prod>1,cap*sqrt(1/prod)-cap/prod,0)
-  else if(funcName=="hockeyStick") ff <- function(prod,cap) ifelse(prod>1,cap/prod,0)
+  if(funcName=="ricker") ff <- function(prod,cap) ifelse(prod>1,log(prod)*cap*(0.5-0.07*log(prod)),NA) # approximation from Hilborn
+  else if(funcName=="bevertonHolt") ff <- function(prod,cap) ifelse(prod>1,cap*sqrt(1/prod)-cap/prod,NA)
+  else if(funcName=="hockeyStick") ff <- function(prod,cap) ifelse(prod>1,cap/prod,NA)
   else{
     print(c("ERROR: ",funcName, " not a recognized SR function in function selectSmsy"))
     break
