@@ -184,9 +184,9 @@ plotResults <-function(dmObj,
     }
     
     
-    # posterior distribution of productivity and log capacity, and SR function
+    # posterior distribution of productivity and capacity, and SR function
     if(plt == "SR"){
-      plotCaps = c(plotCaps, "Posterior of the spawner-recruit parameters and fits to the spawner-recruit data. The left panel represents the joint posterior distribution for the productivity and log capacity parameters of the spawner-recruit relationship.  The grey dots represent individual samples from the posterior distribution.  Thus darker regions represent higher probability.  The orange point is the posterior median.  The blue point is the point estimate (maximum likelihood).  The right panel is total spawners age 3 to 5 versus estimated adult equivalent recruits. The vertical green lines represent uncertainty in recruitment (80/% credible intervals) and the horizontal green line represent observation uncertainty in the spawner numbers (80/% credible interval).  The black lines represent the shift from the observed spawners to the predicted spawners.  The red lines represent the spawner-recruit function for 20 samples from the posterior distribution.")
+      plotCaps = c(plotCaps, "Posterior of the spawner-recruit parameters and fits to the spawner-recruit data. The left panel represents the joint posterior distribution for the productivity and capacity parameters of the spawner-recruit relationship.  The grey dots represent individual samples from the posterior distribution.  Thus darker regions represent higher probability.  The orange point is the posterior median.  The blue point is the point estimate (maximum likelihood).  The right panel is total spawners age 3 to 5 versus estimated adult equivalent recruits. The vertical green lines represent uncertainty in recruitment (80/% credible intervals) and the horizontal green line represent observation uncertainty in the spawner numbers (80/% credible interval).  The black lines represent the shift from the observed spawners to the predicted spawners.  The red lines represent the spawner-recruit function for 20 samples from the posterior distribution.")
       if(plotDest=="none") next
       if(plotDest=="png") png(paste(plotName, "_", plt, ".png",sep=""), width=8, height=5,units="in",res=400)
       if(plotDest=="screen") dev.new(width=8, height=5, noRStudioGD=TRUE)
@@ -196,19 +196,20 @@ plotResults <-function(dmObj,
       #dmObj$mlEst$estimate this is prod, cap, msCoef, flowCoef
       mlEst.cent <- dmObj$mlEst$estimate
 
-      plot(x$logCap,x$prod,
-           xlim=c(min(x$logCap),min(12,max(x$logCap,log(mlEst.cent["cap"])))),
+      cap <- exp(x$logCap)
+      plot(cap,x$prod,
+           xlim=quantile(cap,prob=c(0.01,0.99)),
            ylim=range(x$prod,mlEst.cent["prod"]),pch=16,col=rgb(0,0,0,0.2),
-           xlab="Capacity (log 10 scale)",ylab="Productivity",bty="l",xaxt="n",yaxt="n")
+           xlab="Capacity",ylab="Productivity",bty="l",xaxt="n",yaxt="n")
       initV <- dmObj$calcInits()
       tmp <- med(as.matrix(cbind(x$prod,x$logCap)),method= "Spatial")
-      points(tmp$median[2],tmp$median[1],pch=16,col="orange",cex=2)
-      points(log(mlEst.cent["cap"]), mlEst.cent["prod"], pch=16, col="blue", cex=2) 
+      points(exp(tmp$median[2]),tmp$median[1],pch=16,col="orange",cex=2)
+      points(mlEst.cent["cap"], mlEst.cent["prod"], pch=16, col="blue", cex=2) 
       
       xAx <- 2^(-5:5)
       nams <- ifelse(xAx<1,paste("1/",1/xAx,sep=""),paste(xAx))
       axis(side=2)
-      axis(side=1, at=log(10^(0:9)),labels=paste(10^(0:9)))
+      axis(side=1)#, at=log(10^(0:9)),labels=paste(10^(0:9)))
       
       # plot of spawner vs recruits and curves
       
