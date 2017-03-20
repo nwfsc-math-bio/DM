@@ -331,9 +331,9 @@ createRAVfile = function(
   }else if(input$analysisType=="SS"){ # use multivariate median to summarize the posterior
   	if(estType=="median"){
   	  if(var(tDat$mat4)<0.001){  
-        averageMaturationRate <- c(med(as.matrix(tDat[,c("mat1","mat2","mat3")]),method="Spatial",mustdith=TRUE)$median,1)
+        averageMaturationRate <- c(med(as.matrix(tDat[,c("mat1","mat2","mat3")]),method="Spatial")$median,1)
       }else{
-        averageMaturationRate <- med(as.matrix(tDat[,c("mat1","mat2","mat3","mat4")]),method="Spatial",mustdith=TRUE)$median
+        averageMaturationRate <- med(as.matrix(tDat[,c("mat1","mat2","mat3","mat4")]),method="Spatial")$median
       }
     }else{
       averageMaturationRate <- tDat[sim,c("mat1","mat2","mat3","mat4")]
