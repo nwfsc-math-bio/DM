@@ -129,7 +129,7 @@ model
       AEQ[year,age-1] <- maturationRate[year,age-1] + (1-maturationRate[year,age-1])*(1 - naturalMort[age+1])*AEQ[year,age]
     }
     maturationRate[year,4] <- 1 # all remaining fish mature at age 5 (not completely true but more or less)
-    AEQ[year,4] <- maturationRate[year,3] + (1-maturationRate[year,3])*(1 - naturalMort[6])
+    AEQ[year,4] <- maturationRate[year,4] + (1-maturationRate[year,4])*(1 - naturalMort[6])
   }
 
   # create AEQ based on median maturation rates
@@ -138,7 +138,7 @@ model
     AEQm[age-1] <- meanMat[age-1] + (1-meanMat[age-1])*(1 - naturalMort[age+1])*AEQm[age]
   }
   meanMat[4] <- 1
-  AEQm[4] <- meanMat[3] + (1-meanMat[3])*(1 - naturalMort[6])
+  AEQm[4] <- meanMat[4] + (1-meanMat[4])*(1 - naturalMort[6])
     
   # hyper priors for rMu and rSD / rTau
   for(age in 2:4){
