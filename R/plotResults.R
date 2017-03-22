@@ -207,7 +207,7 @@ plotResults <-function(dmObj,
            xlab="Capacity",ylab="Productivity",bty="l",xaxt="n",yaxt="n")
       initV <- dmObj$calcInits()
       tmp <- med(as.matrix(cbind(x$prod,x$logCap)),method= "Spatial")$median
-      points(exp(tmp$median[2]),tmp$median[1],pch=16,col="orange",cex=2)
+      points(exp(tmp[2]),tmp[1],pch=16,col="orange",cex=2)
       #points(mlEst.cent["cap"], mlEst.cent["prod"], pch=16, col="blue", cex=2) 
       
       xAx <- 2^(-5:5)
