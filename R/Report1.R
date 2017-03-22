@@ -4,15 +4,19 @@
 #' @param output.file Filename to give saved report.
 #' @param rav.options list of the rav file options to use that do not come from the posteriors.
 #' @param output_format list of output formats.  Any that rmarkdown:::render allow are fine.
+#' @param output.dir Directory where to save the output files.  Defaults to working directory.
+#' @param input.type Rmd for rmarkdown.  Rnw for knitr.
 #' @return Nothing.  The report is written to a PDF and tex file.
 Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
-                    rav.options=list(), output_format=c("html_document","pdf_document"))
+                    rav.options=list(), 
+                    output_format=c("pdf_document"),
+                    output.dir=getwd(), input.type="Rnw")
 {
   if (missing(dmObj) && missing(dmObj.RData.file)) {
     stop(paste("Report generation requires either a runModel() results object",
                "or an RData file name."))
   }
-
+  
   if (!missing(dmObj.RData.file)) {
     rdnames <- load(dmObj.RData.file)
     reqnames <- c("input", "dat", "mlEst", "tDat", "bdat", "plist")
@@ -20,12 +24,12 @@ Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
     if (length(missing) > 0) {
       stop(paste(paste(missing,collapse=','), "missing in RData\n"))
     }
-
+    
     SRfunction <- input$SRfunction
     if (is.null(SRfunction)) {
       stop("SRfunction missing in RData$input")
     }
-
+    
     includeMarineSurvival <- input$includeMarineSurvival
     if (is.null(includeMarineSurvival)) {
       stop("includeMarineSurvival missing in RData$input")
@@ -34,19 +38,19 @@ Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
     if (is.null(includeFlow)) {
       stop("includeFlow missing in RData$input")
     }
-
+    
     dmObj <- list()
     dmObj$input <- input
     dmObj$dat <- dat
     dmObj$mlEst <- mlEst
     dmObj$tDat <- tDat
     dmObj$bdat <- bdat
-
+    
     dmObj$jagsOut <- plist$jagsOut
     dmObj$otherDat <- plist$otherDat
     dmObj$priors <- plist$priors
     dmObj$calcInits <- function() { plist$theinits }
-
+    
   } else {
     input <- dmObj$input
     population <- input$population
@@ -58,29 +62,39 @@ Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
     tDat <- dmObj$tDat
     bdat <- dmObj$bdat
   }
-
+  
   ## knitr will attempt to use the input directory as a work directory
   ## for its intermediate files.  This fails when the input directory
   ## is the package directory and the package is invoked from a server.
   ## Copy the Rmd file to the output directory and use that as the
   ## input path.  knitr will now create its temporaries in that directory,
   ## where it must have write permission anyway.
-                
+  
   pkgpath <- find.package("DM")
-  path=file.path(pkgpath, "doc", "Report1-knitr.Rmd")
+  path=file.path(pkgpath, "doc", paste("Report1-knitr.",input.type,sep=""))
   rmdPath <- dirname(output.file)
-  rmdPath <- file.path(rmdPath, "Report1-knitr.Rmd")
+  rmdPath <- file.path(rmdPath, paste("Report1-knitr.",input.type,sep=""))
   file.copy(path, rmdPath)
   path <- rmdPath
   for(out in output_format){
-    extra = ""
-    file.suffix = str_split(out,"_")[[1]][1]
-    if(file.suffix == "slidy") {extra="-slidy"; file.suffix="html"}
-    if(file.suffix == "ioslides") {extra="-ioslides"; file.suffix="html"}
-    if(file.suffix == "beamer") {extra="-beamer"; file.suffix="pdf"}
-    if(file.suffix == "word") {file.suffix="docx"}
-    rmarkdown::render(path, output_format=out,
-                    output_file=paste(output.file, extra,".",file.suffix,sep=""),
-                    output_dir=getwd())
+    if(input.type=="Rnw"){
+      file.suffix = str_split(out,"_")[[1]][1]
+      if(file.suffix == "pdf")
+        knit2pdf(path,
+                 output=paste(output.dir,"/", output.file, ".tex",sep=""),
+                 envir=sys.nframe(), quiet=TRUE)
+    }
+    if(input.type=="Rmd"){
+      extra = ""
+      file.suffix = str_split(out,"_")[[1]][1]
+      if(file.suffix == "slidy") {extra="-slidy"; file.suffix="html"}
+      if(file.suffix == "ioslides") {extra="-ioslides"; file.suffix="html"}
+      if(file.suffix == "beamer") {extra="-beamer"; file.suffix="pdf"}
+      if(file.suffix == "word") {file.suffix="docx"}
+      rmarkdown::render(path, output_format=out,
+                        output_file=paste(output.file, extra,".",file.suffix,sep=""),
+                        output_dir=getwd(),clean=FALSE)
+    }
   }
+  ok=file.remove(rmdPath)
 }
