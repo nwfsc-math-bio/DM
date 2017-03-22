@@ -63,16 +63,16 @@ plotResults <-function(dmObj,
       plotCaps = c(plotCaps, "The freshwater and marine survival covariates versus brood year.  The covariate appears in the spawner recruit function.")
       if(plotDest=="none") next
       if(input$includeMarineSurvival=="yes" | input$includeFlow=="yes"){
-        if(plotDest=="png") png(paste(plotName, "_", plt, ".png",sep=""),width=8,height=7,units="in",res=400)
-        if(plotDest=="screen") dev.new(width=8, height=7, noRStudioGD=TRUE)
+        if(plotDest=="png") png(paste(plotName, "_", plt, ".png",sep=""),width=8,height=5,units="in",res=400,pointsize=10)
+        if(plotDest=="screen") dev.new(width=8, height=5, noRStudioGD=TRUE, pointsize=10)       
         logFlowMu <- mean(log(dat$flow[dat$broodYear %in% input$firstYear:input$lastYear]))
         logMSMu <- mean(log(dat$marineSurvivalIndex[dat$broodYear %in% input$firstYear:input$lastYear]))
         flow <- exp(bdat$logFlow + logFlowMu)
         MSind <- exp(bdat$logMarineSurvivalIndex + logMSMu)
-        par(mfrow=c(2,1),mar=c(2,4,5,0),oma=c(3,3,1,2))
+        par(mfrow=c(2,1),mar=c(4,4,2,0),oma=c(1,1,1,2))
         yrInd <- 1:bdat$lastYear
-        plot(BY[yrInd],flow[yrInd],xlab="",ylab="Flow var",bty="l",type="o",pch=16)
-        plot(BY[yrInd],MSind[yrInd],xlab="Brood Year",ylab="Marine survival index",bty="l",type="o",pch=16)
+        plot(BY[yrInd],flow[yrInd],xlab="",ylab="Flow var",bty="l",type="o",pch=16,cex.lab=1.25)
+        plot(BY[yrInd],MSind[yrInd],xlab="Brood Year",ylab="Marine survival index",bty="l",type="o",pch=16,cex.lab=1.25)
         if(plotDest %in% dev.off.dests) dev.off()
       }
     }
@@ -81,14 +81,18 @@ plotResults <-function(dmObj,
     if(plt == "harvest"){
       plotCaps = c(plotCaps, "The mixed maturity fishing rate and mixed fishing rate by brood year and age. The different shaded bars represent the different age where age 2 are the darkest and age 5 are the lightest.")
       if(plotDest=="none") next
-      if(plotDest=="png") png(paste(plotName, "_", plt, ".png",sep=""),width=8,height=7,units="in",res=400)
-      if(plotDest=="screen") dev.new(width=8, height=7, noRStudioGD=TRUE)
-      par(mfrow=c(2,1),mar=c(2,4,5,0),oma=c(3,3,1,2))
+      if(plotDest=="png") png(paste(plotName, "_", plt, ".png",sep=""),width=8,height=5,units="in",res=400,pointsize=10)
+      if(plotDest=="screen") dev.new(width=8, height=5, noRStudioGD=TRUE)
+      par(mfrow=c(2,1),mar=c(2,4,3,0),oma=c(3,3,1,2))
       yInd <- 1:(bdat$lastYear)
-      barplot(t(bdat$matureFishingRate),beside=TRUE,names.arg=paste(BY[yInd]),las=2,main="Mature Fishing Rate")
-      barplot(t(bdat$mixedMaturityFishingRate),beside=TRUE,names.arg=paste(BY[yInd]),las=2,main="Mixed Maturity Fishing Rate")
+      barplot(t(bdat$matureFishingRate),beside=TRUE,names.arg=paste(BY[yInd]),las=2,main="",
+              legend.text=paste("Age",2:5),args.legend=list(x=length(BY[yInd])*5,y=1,horiz=T,bty="n"))
+      mtext(side=2,text="Mature",line=4,cex=1.1)
+      mtext(side=2,text="Fishing Rate",line=3,cex=1.1)
+      barplot(t(bdat$mixedMaturityFishingRate),beside=TRUE,names.arg=paste(BY[yInd]),las=2,main="")
+      mtext(side=2,text="Mixed Maturity",line=4,cex=1.1)
+      mtext(side=2,text="Fishing Rate",line=3,cex=1.1)
       mtext(side=1,outer=TRUE,text="Brood Year",line=1)
-      mtext(side=2,outer=TRUE,text="Harvest Rate",line=1)
       if(plotDest %in% dev.off.dests) dev.off()
     }
     
@@ -188,9 +192,9 @@ plotResults <-function(dmObj,
     if(plt == "SR"){
       plotCaps = c(plotCaps, "Posterior of the spawner-recruit parameters and fits to the spawner-recruit data. The left panel represents the joint posterior distribution for the productivity and capacity parameters of the spawner-recruit relationship.  The grey dots represent individual samples from the posterior distribution.  Thus darker regions represent higher probability.  The orange point is the posterior median.  The blue point is the point estimate (maximum likelihood).  The right panel is total spawners age 3 to 5 versus estimated adult equivalent recruits. The vertical green lines represent uncertainty in recruitment (80/% credible intervals) and the horizontal green line represent observation uncertainty in the spawner numbers (80/% credible interval).  The black lines represent the shift from the observed spawners to the predicted spawners.  The red lines represent the spawner-recruit function for 20 samples from the posterior distribution.")
       if(plotDest=="none") next
-      if(plotDest=="png") png(paste(plotName, "_", plt, ".png",sep=""), width=8, height=5,units="in",res=400)
-      if(plotDest=="screen") dev.new(width=8, height=5, noRStudioGD=TRUE)
-      par(mfrow=c(1,2))
+      if(plotDest=="png") png(paste(plotName, "_", plt, ".png",sep=""), width=9.5, height=5,units="in",res=400)
+      if(plotDest=="screen") dev.new(width=9.5, height=5, noRStudioGD=TRUE)
+      par(mfrow=c(1,2),mar=c(4,4,2,2))
 
             #compute the centered ML estimate
       #dmObj$mlEst$estimate this is prod, cap, msCoef, flowCoef
@@ -199,12 +203,12 @@ plotResults <-function(dmObj,
       cap <- exp(x$logCap)
       plot(cap,x$prod,
            xlim=quantile(cap,prob=c(0.01,0.99)),
-           ylim=range(x$prod,mlEst.cent["prod"]),pch=16,col=rgb(0,0,0,0.2),
+           ylim=range(x$prod),pch=16,col=rgb(0,0,0,0.2), # removed ,mlEst.cent["prod"] from range because sometimes mle is very large. could constrain mle. (or better yet apply the priors?)
            xlab="Capacity",ylab="Productivity",bty="l",xaxt="n",yaxt="n")
       initV <- dmObj$calcInits()
       tmp <- med(as.matrix(cbind(x$prod,x$logCap)),method= "Spatial")
       points(exp(tmp$median[2]),tmp$median[1],pch=16,col="orange",cex=2)
-      points(mlEst.cent["cap"], mlEst.cent["prod"], pch=16, col="blue", cex=2) 
+      #points(mlEst.cent["cap"], mlEst.cent["prod"], pch=16, col="blue", cex=2) 
       
       xAx <- 2^(-5:5)
       nams <- ifelse(xAx<1,paste("1/",1/xAx,sep=""),paste(xAx))
@@ -254,7 +258,11 @@ plotResults <-function(dmObj,
       # plot recruitment residuals
       tmp <- log(x$recruits)-log(x$predictedRecruits)
       tQ <- apply(tmp,2,quantile,prob=c(0.1,0.5,0.9))
-      plot(BY[c(1,nn)],c(0,0),ylim=max(abs(tQ))*c(-1,1),xlab="",ylab="Process Error",type="l",lty=3,bty="l")
+      plot(BY[c(1,nn)],c(0,0),ylim=max(abs(tQ))*c(-1,1),xlab="",ylab="Recruits/(Predicted recruits)",type="l",lty=3,bty="l",yaxt="n")
+      xAx <- 2^(-5:5)
+      nams <- ifelse(xAx<1,paste("1/",1/xAx,sep=""),paste(xAx))
+      axis(side=2, at=log(xAx),labels=nams,las=2)
+ 
       points(BY[1:nn],tQ[2,],pch=16)
       segments(x0=BY[1:nn],y0=tQ[1,],x1=BY[1:nn],y1=tQ[3,],lwd=3,col=rgb(0.2,0.8,0.2,0.5))
       
@@ -273,7 +281,7 @@ plotResults <-function(dmObj,
       # plot the year specific natural productivity recruits/spawners
       RpS <- log(x$recruits) - log(escTmp)
       RpSq <- apply(RpS,2,quantile,prob=c(0.1,0.5,0.9))
-      plot(c(1900,2100),c(0,0),xlim=BY[c(1,nn)],ylim=range(RpSq),xlab="",ylab="log(Recruits/Spawner)",type="l",lty=3,yaxt="n",bty="l")
+      plot(c(1900,2100),c(0,0),xlim=BY[c(1,nn)],ylim=range(RpSq),xlab="",ylab="Recruits/Spawner",type="l",lty=3,yaxt="n",bty="l")
       points(BY[1:nn],RpSq[2,],pch=16)
       segments(x0=BY[1:nn],y0=RpSq[1,],x1=BY[1:nn],y1=RpSq[3,],lwd=3,col=rgb(0.2,0.8,0.2,0.5))
       xAx <- 2^(-5:5)
