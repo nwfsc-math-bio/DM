@@ -12,5 +12,5 @@ str_proper=function(string) {
 
 med <- function(x, method="Default"){
   if(method=="Default") return(list(median=apply(x,2,median, na.rm=TRUE)))
-  if(method=="Spatial") return(list(median=Gmedian(na.omit(x))))
+  if(method=="Spatial") return(list(median=as.vector(Gmedian(na.omit(x)))))
 }
