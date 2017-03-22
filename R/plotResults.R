@@ -206,7 +206,7 @@ plotResults <-function(dmObj,
            ylim=range(x$prod),pch=16,col=rgb(0,0,0,0.2), # removed ,mlEst.cent["prod"] from range because sometimes mle is very large. could constrain mle. (or better yet apply the priors?)
            xlab="Capacity",ylab="Productivity",bty="l",xaxt="n",yaxt="n")
       initV <- dmObj$calcInits()
-      tmp <- med(as.matrix(cbind(x$prod,x$logCap)),method= "Spatial")
+      tmp <- med(as.matrix(cbind(x$prod,x$logCap)),method= "Spatial")$median
       points(exp(tmp$median[2]),tmp$median[1],pch=16,col="orange",cex=2)
       #points(mlEst.cent["cap"], mlEst.cent["prod"], pch=16, col="blue", cex=2) 
       
