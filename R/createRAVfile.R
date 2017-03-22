@@ -179,7 +179,7 @@ createRAVfile = function(
     
   # SR parameters
   if(estType=="median"){
-    SRparameters <- med(as.matrix(tDat[,c("a","b","c","d")]),method="Spatial")$median
+    SRparameters <- med(tDat[,c("a","b","c","d")],method="Spatial")$median
   }else{
   	SRparameters <- tDat[sim,c("a","b","c","d")]
   }
@@ -235,7 +235,7 @@ createRAVfile = function(
   if(numParams>2){
     SRvarA <- 0.0
     if(estType=="median"){
-      tmp <- med(as.matrix(tDat[,c("MSE","autoCorr")]),method="Spatial")$median
+      tmp <-med(tDat[,c("MSE","autoCorr")], method="Spatial")$median
     }else{
       tmp <- tDat[sim,c("MSE","autoCorr")]
     }
@@ -243,12 +243,12 @@ createRAVfile = function(
     SRvarCor <- tmp[2]
   }else{
   	if(estType=="median"){
-      tmp <- med(as.matrix(tDat[,c("meanSR","sdSR")]),method="Spatial")$median
+      tmp <- med(tDat[,c("meanSR","sdSR")], method="Spatial")$median
     }else{
       tmp <- tDat[sim,c("meanSR","sdSR")]
     }
     mu <- tmp[1]
-    s2 <- tmp[2]
+    s2 <- tmp[2]^2
     SRvarA <- mu^2/s2 #(tDat$meanSR[options$simInd]/tDat$sdSR[options$simInd])^2
     SRvarB <- s2/mu #(tDat$sdSR[options$simInd]^2)/tDat$meanSR[options$simInd]
     SRvarCor <- 0.0
@@ -331,9 +331,9 @@ createRAVfile = function(
   }else if(input$analysisType=="SS"){ # use multivariate median to summarize the posterior
   	if(estType=="median"){
   	  if(var(tDat$mat4)<0.001){  
-        averageMaturationRate <- c(med(as.matrix(tDat[,c("mat1","mat2","mat3")]),method="Spatial")$median,1)
+        averageMaturationRate <- c(med(tDat[,c("mat1","mat2","mat3")], method="Spatial")$median,1)
       }else{
-        averageMaturationRate <- med(as.matrix(tDat[,c("mat1","mat2","mat3","mat4")]),method="Spatial")$median
+        averageMaturationRate <- med(tDat[,c("mat1","mat2","mat3","mat4")], method="Spatial")$median
       }
     }else{
       averageMaturationRate <- tDat[sim,c("mat1","mat2","mat3","mat4")]
@@ -343,8 +343,9 @@ createRAVfile = function(
   }
   
   # average mixed-maturity and mature fishery fishing rates
-  averageMixedMaturityFishingRate <- apply(bdat$mixedMaturityFishingRate,2,mean,na.rm=TRUE)
-  averageMatureFishingRate <- apply(bdat$matureFishingRate,2,mean,na.rm=TRUE)
+  tmpN <- dim(bdat$mixedMaturityFishingRate)[1]
+  averageMixedMaturityFishingRate <- apply(bdat$mixedMaturityFishingRate[(tmpN-4):tmpN,],2,mean,na.rm=TRUE)
+  averageMatureFishingRate <- apply(bdat$matureFishingRate[(tmpN-4):tmpN,],2,mean,na.rm=TRUE)
   
   
   # create lines of text for RAV file based on calculated values and params from above
