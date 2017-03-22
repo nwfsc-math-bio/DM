@@ -1,0 +1,110 @@
+% This creates a basic report of the uncertainty in SR parameters
+% It is meant to be called by Report1() function
+\documentclass[12pt]{article}
+
+\usepackage[footnotesize, bf]{caption} % for nicer caption options
+\setlength{\captionmargin}{24pt}
+
+<<include=FALSE>>=
+opts_chunk$set(concordance=TRUE, echo=FALSE)
+@
+
+<<title, results='asis'>>=
+cat("\\title{Analysis of uncertainty in ")
+cat(str_proper(input$SRfunction), " SR parameters and propagation to VRAP RERs for the ")
+cat(input$population, "}\n")
+@
+
+\author{}
+\begin{document}
+\maketitle
+
+<<RUNFIRST>>=
+#This one uses a and p input file unless .Rdata requested
+require(DM)
+@
+
+<<prelim>>=
+#This Sweave file is not called directly.  Rather is it called when Report1() is called.
+#this xRnw file is called using the environment of the Report1() call, thus the Rnw file knows of the vars
+
+#set up the inputs
+mm <- ifelse(input$covariates=="yes",1,0)
+ff <- ifelse(input$covariates=="yes",1,0)
+fig.num=0
+require(knitr)
+@
+
+The SR model being fit is a 
+<<label=SR.text, results='asis'>>=
+if(input$SRfunction=="ricker") cat(" Ricker function. ")
+if(input$SRfunction=="bevertonHolt") cat(" Beverton-Holt function. ")
+if(input$SRfunction=="hockeyStick") cat(" Hockey-stick function. ")
+  cat("$a$ and $b$ are the SR function parameters for production ($a$) and capacity ($b$). $R$ is the number of recruits and $S$ is number of spawners. ")
+  if(input$includeMarineSurvival=="yes") 
+cat("$c$ is the coefficient for the effect of the marine covariate $M$ (log-scale) on survival.")
+  if(input$includeFlow=="yes") 
+cat("$d$ is the coefficient for the effect of the flow covariate $F$ (log-scale) on survival.")
+@
+<<label=SR.eqn.ricker, results='asis'>>=
+if(input$SRfunction=="ricker"){
+  cat("\\begin{equation}R=\\frac{S a}{ \\mbox{exp}(S/b)}")
+  if(input$includeMarineSurvival=="yes") cat("e^{c M}")
+  if(input$includeFlow=="yes") cat("e^{d F}")
+  cat("\\end{equation}\n")
+  if(input$includeMarineSurvival=="yes" | input$includeFlow=="yes")
+  cat("$F$ is the log of the stream flow covariate and $M$ is the log of the marine condition index covariate.\n\n")
+}
+@
+
+<<label=SR.eqn.bh, results='asis'>>=
+if(input$SRfunction=="bevertonHolt"){
+   cat("\\begin{equation}R=\\frac{S}{S/b + 1/a}")
+  if(input$includeMarineSurvival=="yes") cat("e^{c M}")
+  if(input$includeFlow=="yes") cat("e^{d F}")
+  cat("\\end{equation}\n")
+  if(input$includeMarineSurvival=="yes" | input$includeFlow=="yes")
+  cat("$F$ is the log of the stream flow covariate and $M$ is the log of the marine condition index covariate.\n\n")
+}
+@
+
+<<label=SR.eqn.hs, results='asis'>>=
+if(input$SRfunction=="hockeyStick"){
+  extra=""
+  if(input$includeMarineSurvival=="yes") extra="e^{c M}"
+  if(input$includeFlow=="yes") extra=paste(extra,"e^{d F}")
+cat(paste("\\begin{equation}R = \\left\\{ \\begin{array}{ll}S a", 
+           extra, "& \\mbox{if $S a < b$};\\\\b", 
+           extra, "& \\mbox{otherwise}.\\end{array} \\right.\\end{equation}\n"))
+if(input$includeMarineSurvival=="yes") cat("$F$ is the log of the stream flow covariate. ")
+if(input$includeFlow=="yes") cat("$M$ is the log of the marine condition index covariate.")
+cat("\n")
+}
+@
+  
+
+\section*{Data and Results}
+
+<<plotcaptions>>=
+plotCaps=plotResults(dmObj, plotDest="none")
+@
+  
+
+
+<<figure.tex>>=
+out = NULL
+for (i in 1:length(plotCaps)) {
+  knitPrefix <- paste("\n\\setkeys{Gin}{}\n\\begin{figure}[htp]\n\\begin{center}\n<<label=plot",i,",echo=FALSE, out.width='5in'>>=\n",sep="")
+  rcode =paste("plotResults(dmObj, plotDest='default', plotType='", names(plotCaps)[i], "')\n", sep="")
+  cap=str_replace_all(plotCaps[i],"/%"," percent")
+  knitSuffix <- paste("\n@\n\\end{center}\n\\caption{",cap,"}\n\\end{figure}\n\n",sep="")
+  knit_expanded <- paste0(knitPrefix, rcode, knitSuffix)
+  out = c(out, knit_expanded)
+}
+@
+
+<<label=figures, results='asis'>>=
+cat(paste(knit(text = out), collapse = '\n'))
+@
+
+\end{document}
