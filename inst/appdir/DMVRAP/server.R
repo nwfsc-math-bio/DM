@@ -1369,7 +1369,7 @@ shinyServer( function(input, output, session) {
 
         rendererror <- 
           try(
-            Report1(dmObj.RData.file=filename, output.file=outfilename,
+            createReport(dmObj.RData.file=filename, output.file=outfilename,
                     rav.options=list(numRuns=DMNUMRUNS)),
             silent=TRUE)
 

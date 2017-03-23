@@ -22,9 +22,9 @@ fig.num=0
 library(knitr)
 ```
 <!--
-#This file is not called directly.  Rather is it called when Report1() is called
-#the vars, population, input, dat, tDat, result, would have been defined by the Report1() call
-#this file is called using the environment of the Report1() call, thus the file knows of the vars
+#This file is not called directly.  Rather is it called when createReport() is called
+#the vars, population, input, dat, tDat, result, would have been defined by the createReport() call
+#this file is called using the environment of the createReport() call, thus the file knows of the vars
 -->
 
 The SR model being fit is a 
