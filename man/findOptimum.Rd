@@ -14,7 +14,7 @@ findOptimum(dat, input, silent = FALSE)
 \item{silent}{(TRUE/FALSE)}
 }
 \value{
-A list.  $estimate is the logged parameters at the minimum sum of squared residuals.  The parameters are log(prod), log(cap), log(msCoef), log(flowCoef).  $value is the sum of squared residuals at the minimum.
+A list.  $estimate parameters at the minimum sum of squared residuals.  The parameters are prod, cap, msCoef, flowCoef.  $value is the sum of squared residuals at the minimum.
 }
 \description{
 Because the likelihood surfaces for these problems often has 
@@ -25,15 +25,17 @@ I found that nlm often gets stuck in a local min. So here I
 have iterated between a genetic optimization algorithm and nlm.  
 This works more often but still at times misses the optimum. 
 This is adhoc.
+
+The covariates are log-transformed and centered if input$centerMS=TRUE or input$centerFlow=TRUE.
 }
 \details{
 In SRFunctions(), bev-holt is defined as
-S/(S*exp(-p[2])+exp(-p[1]))*exp(exp(p[3])*logMS)*exp(exp(p[4])*logFlow)
+S/(S*exp(-p[2])+exp(-p[1]))*exp(p[3]*logMS)*exp(p[4]*logFlow)
 In DM (writeBUGSmodel.R), 
 R = [S/( (S/exp(logCap)) + (1/prod)  )]  exp(marineInd*logMS)  exp(flowCoef*logFlow)
 so
-p[1] = log(prod),
-p[2] = log(cap),
-p[3] = log(msCoef),
-p[4] = log(flowCoef)
+p[1] = log(prod), constrained to be positive
+p[2] = log(cap), constrained to be positive
+p[3] = msCoef,
+p[4] = flowCoef
 }

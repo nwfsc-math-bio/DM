@@ -36,7 +36,7 @@ do not have 0 mean.  VRAP needs the SR parameters in this raw form using non-cen
   \item{minAge}{(2)}
   \item{maxAge}{(5)}
   \item{convergeCrit}{(0.001)}
-  \item{debugFlag}{("NO") "NO"/"YES"}
+  \item{centerCovFlag}{("NO") "NO"/"YES"}
   \item{marineSurvType}{("Autoc") "Autoc"/"Cycle"/"Trend"}
   \item{flowType}{("Autoc") "Autoc"/"Cycle"/"Trend"}
   \item{modelDepensation}{("NO") "NO"/"YES"}

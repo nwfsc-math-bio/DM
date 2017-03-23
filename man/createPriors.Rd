@@ -5,8 +5,8 @@
 \title{Create a priors list.}
 \usage{
 createPriors(pMode = 20, pSig = 7, pMin = 0, pMax = 40, cMu = 9,
-  cSig = 50, cMin = 3, cMax = 12, msMin = 1e-04, flowMin = -1000,
-  flowMax = -1e-04)
+  cSig = 50, cMin = 3, cMax = 12, msMode = 1e-04, msMin = 1e-04,
+  msMax = 1000, flowMode = -1, flowMin = -1000, flowMax = -1e-04)
 }
 \arguments{
 \item{pMode}{Mode of the production prior}
@@ -17,17 +17,17 @@ createPriors(pMode = 20, pSig = 7, pMin = 0, pMax = 40, cMu = 9,
 
 \item{pMax}{Upperbound of the production prior}
 
-\item{cSig}{Sigma of the capacity prior}
+\item{cSig}{Sigma of the log capacity prior}
 
-\item{cMin}{Lowerbound of the capacity prior}
+\item{cMin}{Lowerbound of the log capacity prior}
 
-\item{cMax}{Upperbound of the capacity prior}
+\item{cMax}{Upperbound of the log capacity prior}
 
-\item{msMin}{Lowerbound of the marine survival coefficient prior}
+\item{msMin}{Lowerbound of the marine survival coefficient prior (note ms covariate is log transformed in the code)}
 
-\item{flowMax}{Upperbound of the flow coefficient prior; the coefficient is always negative}
+\item{flowMax}{Upperbound of the flow coefficient prior; the coefficient is always negative  (note flow covariate is log transformed in the code)}
 
-\item{cMode}{Mode of the capacity prior}
+\item{cMode}{Mode of the log capacity prior}
 }
 \value{
 a list with parameters for each prior.

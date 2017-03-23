@@ -15,5 +15,5 @@ centerProdCap(input, dat, params)
 a vector of centered parameters with names flowCoef, msCoef, prod, cap.
 }
 \description{
-Center capacity and productivity so that parameters can be compared to estimates from a Bayesian analysis where the covariates were centered.  VRAP uses the uncentered parameters. The input$centerFlow and input$centerMS variables specify whether and which covariates were centered for the Bayesian analysis.
+Center capacity and productivity so that parameters can be compared to estimates from a Bayesian analysis where the covariates were centered.
 }
