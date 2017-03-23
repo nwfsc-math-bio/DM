@@ -1,5 +1,4 @@
 #' @title Optimization functions.
-#' 
 #' @description Because the likelihood surfaces for these problems often has 
 #' a severe bananna shape with a poorly defined maximum finding 
 #' an optimum is often non-trivial If an optimum is given in the 
@@ -10,7 +9,6 @@
 #' This is adhoc.
 #' 
 #' The covariates are log-transformed and centered if input$centerMS=TRUE or input$centerFlow=TRUE.
-#' 
 #' @param dat data from the A & P file
 #' @param input a list with the other values needed for a DM run. 
 #' @param silent (TRUE/FALSE)
