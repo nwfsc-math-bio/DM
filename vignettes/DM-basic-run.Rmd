@@ -1,0 +1,90 @@
+---
+title: "DM Basic Run"
+date: "`r Sys.Date()`"
+output: html_document
+vignette: >
+  %\VignetteIndexEntry{DM Basic Run}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+
+This runs a simple DM model on the A and P file from Stilliguamish.
+
+```{r, include=FALSE}
+require(DM)
+
+## Set up the file name
+  input_file <- "DemoAandP-Stilliguamish.csv"
+  pkgpath <- find.package("DM")
+  path=file.path(pkgpath, "doc", input_file )
+
+## Set the input list
+inputList <- list(
+  firstYear=1986,
+  lastYear=2011,
+  MSYfirstYear=1986,
+  MSYlastYear=2011,
+  SRfunction="hockeyStick",
+  analysisType="SS",
+  includeMarineSurvival="yes",
+  includeFlow="yes",
+  escapementObsSD=0.25)
+
+## Set the priors
+priors <- createPriors(
+  pMode=1.5, pSig=0.75, pMax=5,
+  cMu=log(1000), cSig=10, cMin=log(500), cMax=log(4000),
+  msMin=0,
+  flowMax=0
+  )
+
+## Run DM
+r1 <- runModel(path, input=inputList, priors=priors)
+```
+
+## Output figures
+
+```{r, fig.show='hide'}
+plotResults(r1)
+```
+
+## Create an html report with the figures and a summary of the model fit
+
+```{r not-run, eval=FALSE}
+Report1(r1, input.type="Rmd", output_format="html_document")
+```
+
+## Run multiple simulations to get multiple RERs
+
+```{r run-sims}
+#run the simulations
+simSamp <- 1:3000
+nsims <- 10
+vrap.nruns <- 10 #should be 1000
+resultList <- list()
+lels <- uels <- c()
+for(i in 1:nsims){
+  ravName <- "temp_rav.rav"
+  outName <- "temp_out"
+  sim <- simSamp[i]
+  if(is.na(r1$tDat[sim,"Smsy"])) next
+  createRAVfile(r1$bdat,r1$input,r1$tDat,r1$dat,filename=ravName, estType="sims",sim=sim, rav.options=list(lowerEscThreshold = 400))
+
+  vrapOut <- Main(InFile=ravName, OutFileBase=outName, 
+                  NRuns=vrap.nruns, silent=TRUE, lcores=1)
+  resultList <- c(resultList,list(vrapOut))
+  tmp=ComputeRER(vrapOut)
+  lels=c(lels, tmp$ERLEL)
+  uels=c(uels, tmp$ERUEL)
+  cat(i," ", vrapOut$time["elapsed"],"\n")
+}
+```
+
+## Histogram of RERs
+
+```{r, fig.show='hold'}
+hist(lels)
+hist(uels)
+```
