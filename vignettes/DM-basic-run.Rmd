@@ -53,7 +53,7 @@ plotResults(r1)
 ## Create an html report with the figures and a summary of the model fit
 
 ```{r not-run, eval=FALSE}
-Report1(r1, input.type="Rmd", output_format="html_document")
+writeReport(r1, input.type="Rmd", output_format="html_document")
 ```
 
 ## Run multiple simulations to get multiple RERs
@@ -71,9 +71,10 @@ for(i in 1:nsims){
   sim <- simSamp[i]
   if(is.na(r1$tDat[sim,"Smsy"])) next
   createRAVfile(r1$bdat,r1$input,r1$tDat,r1$dat,filename=ravName, estType="sims",sim=sim, rav.options=list(lowerEscThreshold = 400))
-
+  #the files are not needed so set save.output.as.files=FALSE
   vrapOut <- Main(InFile=ravName, OutFileBase=outName, 
-                  NRuns=vrap.nruns, silent=TRUE, lcores=1)
+                  NRuns=vrap.nruns, silent=TRUE, lcores=1,
+                  save.output.as.files=FALSE)
   resultList <- c(resultList,list(vrapOut))
   tmp=ComputeRER(vrapOut)
   lels=c(lels, tmp$ERLEL)
@@ -87,4 +88,8 @@ for(i in 1:nsims){
 ```{r, fig.show='hold'}
 hist(lels)
 hist(uels)
+```
+
+```{r clean-up, echo=FALSE}
+if(file.exists("mod1.txt")) file.remove("mod1.txt")
 ```
