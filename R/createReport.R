@@ -1,16 +1,17 @@
-#' @title Creates a PDF report with plots.
+#' @title Creates a report with plots.
 #' @param dmObj a saved DM object (list) from runModel() with the objects "input","dat","result", and "tDat"
 #' @param dmObj.RData.file a saved DM object as a RData file with the objects "input","dat","result", and "tDat"
 #' @param output.file Filename to give saved report.
 #' @param rav.options list of the rav file options to use that do not come from the posteriors.
-#' @param output_format list of output formats.  Any that rmarkdown:::render allow are fine.
+#' @param output_format list of output formats.  If input.type=="Rmd", any format that rmarkdown:::render allows is fine.  If input.type=="xRnw", only "pdf_document" is allowed.
 #' @param output.dir Directory where to save the output files.  Defaults to working directory.
-#' @param input.type Rmd for rmarkdown.  Rnw for knitr.
+#' @param input.type Rmd for rmarkdown.  xRnw for knitr.
 #' @return Nothing.  The report is written to a PDF and tex file.
-Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
+createReport <- function(dmObj=NULL, dmObj.RData.file=NULL,
+                    output.file="report1",
                     rav.options=list(), 
                     output_format=c("pdf_document"),
-                    output.dir=getwd(), input.type="Rnw")
+                    output.dir=getwd(), input.type="xRnw")
 {
   if (missing(dmObj) && missing(dmObj.RData.file)) {
     stop(paste("Report generation requires either a runModel() results object",
@@ -23,6 +24,10 @@ Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
     missing <- reqnames[!(reqnames %in% rdnames)]
     if (length(missing) > 0) {
       stop(paste(paste(missing,collapse=','), "missing in RData\n"))
+    }
+    
+    if (input.type=="xRnw") {
+      if(output_format != "pdf_document") stop("If input.type is xRnw, then only pdf_document allowed as output_format.")
     }
     
     SRfunction <- input$SRfunction
@@ -66,9 +71,11 @@ Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
   ## knitr will attempt to use the input directory as a work directory
   ## for its intermediate files.  This fails when the input directory
   ## is the package directory and the package is invoked from a server.
-  ## Copy the Rmd file to the output directory and use that as the
+  ## Copy the Rmd/xRnw file to the output directory and use that as the
   ## input path.  knitr will now create its temporaries in that directory,
   ## where it must have write permission anyway.
+  ## The Rnw file has file suffix xRnw so that the file is not auto-built
+  ## as vignette when the package is built.
   
   pkgpath <- find.package("DM")
   path=file.path(pkgpath, "doc", paste("Report1-knitr.",input.type,sep=""))
@@ -77,7 +84,7 @@ Report1 <- function(dmObj=NULL, dmObj.RData.file=NULL, output.file="report1",
   file.copy(path, rmdPath)
   path <- rmdPath
   for(out in output_format){
-    if(input.type=="Rnw"){
+    if(input.type=="xRnw"){
       file.suffix = str_split(out,"_")[[1]][1]
       if(file.suffix == "pdf")
         knit2pdf(path,
