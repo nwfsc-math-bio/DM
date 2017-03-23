@@ -8,28 +8,28 @@
 #' @param a.and.p.file a csv file saved from the DM tab of an A & P excel file
 #' @param input a list with the other values needed for a DM run. The following are the defaults used, but can be passed in to specify something different.
 #' \describe{
-#'   \item{population}{(from A and P file): name}
-#'   \item{naturalMort}{c(0.5,0.4,0.3,0.2,0.1,0): natural mortality}
-#'   \item{firstYear}{(from A and P file)}
-#'   \item{lastYear}{(from A and P file)}
-#'   \item{MSYfirstYear}{(same as firstYear)}
-#'   \item{MSYlastYear}{(same as lastYear)}
-#'   \item{analysisType}{("DM")/"SS"}
+#'   \item{population}{name of the population.  Defaults to using value in A and P file.}
+#'   \item{naturalMort}{vector of natural mortality for age 1:6.  Defaults to c(0.5,0.4,0.3,0.2,0.1,0) }
+#'   \item{firstYear}{First year of spawner data to use.  Defaults to using value in cell C4 on DynamicsInput tab in A and P file.}
+#'   \item{lastYear}{Last year of spawner data to use.  Defaults to using value in cell C5 on DynamicsInput tab in A and P file.}
+#'   \item{MSYfirstYear}{Defaults to using firstYear.}
+#'   \item{MSYlastYear}{Defaults to using lastYear.}
+#'   \item{analysisType}{"DM" or "SS".  Defaults to DM.}
 #'   \item{SRfunction}{("ricker")/"bevertonHolt"/"hockeyStick": spawner-recruit function}
 #'   \item{includeMarineSurvival}{"yes"/("no"): include marine survival covariate}
 #'   \item{includeFlow}{"yes"/("no"): include flow covariate}
-#'   \item{initialPopSize}{(from A and P file)}
-#'   \item{prod}{NA: used for initial conditions of optimizers and MCMC algorithm}
-#'   \item{cap}{NA: used for initial conditions of optimizers and MCMC algorithm}
-#'   \item{msCoef}{NA: used for initial conditions of optimizers and MCMC algorithm}
-#'   \item{flowCoef}{NA: used for initial conditions of optimizers and MCMC algorithm}
-#'   \item{centerMS}{TRUE: set mean of the covariate zero}
-#'   \item{centerFlow}{TRUE: set mean of the covariate zero}
+#'   \item{initialPopSize}{Initial population size for age 2 to 5.  Defaults to using values in cells N6:Q6 on DynamicsInput tab in A and P file.}
+#'   \item{prod}{Used for initial conditions of optimizers and MCMC algorithm. Default is NA which means the ML estimates are used as the initial conditions.}
+#'   \item{cap}{Used for initial conditions of optimizers and MCMC algorithm. Default is NA which means the ML estimates are used as the initial conditions.}
+#'   \item{msCoef}{Used for initial conditions of optimizers and MCMC algorithm. Default is NA which means the ML estimates are used as the initial conditions.}
+#'   \item{flowCoef}{Used for initial conditions of optimizers and MCMC algorithm. Default is NA which means the ML estimates are used as the initial conditions.}
+#'   \item{centerMS}{Set mean of the MS covariate to zero in the SR function.  Default is TRUE.}
+#'   \item{centerFlow}{Set mean of the flow covariate to zero in the SR function.  Default is TRUE.}
 #'   \item{escapementObsSD}{NULL}
-#'   \item{age2correction}{1.0: correction for seeing fewer age 2 fish when sampling for age composition. (detection probability for age 2 fish / detection probability for ages 3-5 fish) }
+#'   \item{age2correction}{Correction for seeing fewer age 2 fish when sampling for age composition. The value to pass in is an estimate of detection probability for age 2 fish / detection probability for ages 3-5 fish.  Default is 1.0: no correction. }
 #' }  
 #' @param silent Whether to print progress messages.
-#' @return The result is a list with dat and input for the DM functions
+#' @return The result is a list with dat and input for the DM functions.
 readData = function(a.and.p.file, input, folder = "./", silent=FALSE){
   
   if(!silent) cat("Reading in the A and P file....\n")
