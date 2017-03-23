@@ -10,27 +10,7 @@ runModel(filename, input = NULL, priors = NULL, run = TRUE,
 \arguments{
 \item{filename}{csv file saved from the DM tab of A & P file.  Must have age data.}
 
-\item{input}{If you want to set/change the input values being read in from the A & P file, those can be passed in as a list.  The values that can be set are (with the default behavior in parentheses).
-#' \describe{
-  \item{population}{(from A and P file): name}
-  \item{naturalMort}{c(0.5,0.4,0.3,0.2,0.1,0): natural mortality}
-  \item{firstYear}{(from A and P file)}
-  \item{lastYear}{(from A and P file)}
-  \item{MSYfirstYear}{(same as firstYear)}
-  \item{MSYlastYear}{(same as lastYear)}
-  \item{analysisType}{("DM")/"SS"}
-  \item{SRfunction}{("ricker")/"bevertonHolt"/"hockeyStick": spawner-recruit function}
-  \item{includeMarineSurvival}{"yes"/("no"): include marine survival covariate}
-  \item{includeFlow}{"yes"/("no"): include flow covariate}
-  \item{initialPopSize}{(from A and P file)}
-  \item{prod}{NA: used for initial conditions of optimizers and MCMC algorithm}
-  \item{cap}{NA: used for initial conditions of optimizers and MCMC algorithm}
-  \item{msCoef}{NA: used for initial conditions of optimizers and MCMC algorithm}
-  \item{flowCoef}{NA: used for initial conditions of optimizers and MCMC algorithm}
-  \item{centerMS}{TRUE: demean the marine survival covariate}
-  \item{centerFlow}{TRUE: demean the flow covariate}
-  \item{escapementObsSD}{NULL}
-}}
+\item{input}{A list that includes parameters for running the model (see readData for details) of particular interest are the parameters SRfunction, analysisType, and escapementObsSD. SRfunction sets the spawner-recruit function to be used. Current options are "ricker", "bevertonHolt" or "hockeyStick".   analysisType can be either "DM" or "SS".  DM corresponds to the traditional Dynamic Model which uses the maturation rates from the DynamicsInput tab in the A&P table. SS corresponds to the State Space model which estimates the maturation rates and includes observation error in the spawner counts.  If escapementObsSD is a positive real number, observation error is fixed at that value. If it is NULL, observation error is a free parameter that is estimated.}
 
 \item{priors}{parameters for prior distributions in the JAGS model}
 

@@ -7,7 +7,7 @@
 SSTfuncDM(p, SRfunc, dat, input, returnAll = FALSE)
 }
 \arguments{
-\item{p}{The values of the SR function parameters logged.  p[1]=log(prod), p[2]=log(cap).  The other p depend on what covariates are in the model. The length of p is 2 + number of covariates.  If there are 2 covariates, then p[3]= log(msCoef) and p[4]=log(flowCoef).}
+\item{p}{The values of the SR function parameters. p[1] and p[2] are logged to keep them positive.  p[1]=log(prod), p[2]=log(cap).  The other p depend on what covariates are in the model.  These are unlogged as they could be positive or negative depending on the covariate.. The length of p is 2 + number of covariates.  If there are 2 covariates, then p[3]= msCoef and p[4]=flowCoef.}
 
 \item{SRfunc}{a SR function: ricker, bevertonHolt, hockeyStick, as returned by selectSR()}
 

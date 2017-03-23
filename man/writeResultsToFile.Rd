@@ -4,7 +4,7 @@
 \alias{writeResultsToFile}
 \title{Save DM output.}
 \usage{
-writeResultsToFile(input, dat, tDat, mlEst, bdat, filename)
+writeResultsToFile(input, dat, tDat, mlEst, bdat, plist, filename)
 }
 \arguments{
 \item{input}{a list with the other values needed for a DM run. The following are the defaults used, but can be passed in to specify something different: naturalMort = c(0.5,0.4,0.3,0.2,0.1,0), analysisType = "DM", SRfunction = "ricker", covariates = "no", includeMarineSurvival = "no", includeFlow = "no"}

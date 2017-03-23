@@ -9,13 +9,13 @@ uncenterProdCap(input, dat, params)
 \arguments{
 \item{dat}{data from the A & P file}
 
-\item{params}{a vector of parameters with names flowCoef, msCoef, prod, cap.  Assumed to be from the Bayesian analysis, so centered (or not) based on input$centerFlow and input$centerMS}
+\item{params}{a vector of parameters with names flowCoef, msCoef, prod, cap.  Assumed to be from the runModel() Bayesian analysis or findOptimum() call, so centered (or not) based on input$centerFlow and input$centerMS}
 }
 \value{
 a vector of uncentered parameters with names flowCoef, msCoef, prod, cap.
 }
 \description{
-Uncenter capacity and productivity if the covariates were centered in the Bayesian Analysis.  VRAP uses the uncentered parameters. The input$centerFlow and input$centerMS variables specify whether and which covariates were centered.
+Transform capacity and productivity estimates to what they would be if the covariates were centered during estimation (Bayesian or ML).  VRAP uses the uncentered parameters. Note, if the coefficients were centered during estimation, input$centerMS=TRUE and/or input$centerFlow=TRUE.  These values are used to determine whether to apply the correction.  Thus input is assumed to match the parameter values in params.
 }
 \seealso{
 centerProdCap

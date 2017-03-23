@@ -24,12 +24,12 @@ hockeyStick(S, covariates, p)
 \value{
 recruits (scalar)
 
-recruits from ricker: S*exp(p[1])*exp(-S/exp(p[2]))*exp(-exp(p[4])*flow)*exp(exp(p[3])*marineInd)
+recruits from ricker: S*exp(p[1])*exp(-S/exp(p[2]))*exp(p[4]*flow)*exp(p[3]*marineInd)
 
-recruits from beverton Holt: S/(S*exp(-p[2])+exp(-p[1]))*exp(-exp(p[4])*flow)*exp(exp(p[3])*marineInd)
+recruits from beverton Holt: S/(S*exp(-p[2])+exp(-p[1]))*exp(p[4]*flow)*exp(p[3]*marineInd)
 
-recruits from hockey stick: ifelse(exp(p[1])*S<exp(p[2]),exp(p[1])*S,exp(p[2]))*exp(-exp(p[4])*flow)*exp(exp(p[3])*marineInd)
+recruits from hockey stick: ifelse(exp(p[1])*S<exp(p[2]),exp(p[1])*S,exp(p[2]))*exp(p[4]*flow)*exp(p[3]*marineInd)
 }
 \description{
-Takes the S, LOG flow, LOG marine survival covariates and p parameters and returns the recruits based on the specified SR function: ricker(), bevertonHolt(), hockeyStick().  Note that it assumes that the log of the covariates are input. All covariates appear in the form exp(exp(p)*cov). p[1]=a; p[2]=b.  The other p match the covariates.
+Takes the S, LOG flow, LOG marine survival covariates and p parameters and returns the recruits based on the specified SR function: ricker(), bevertonHolt(), hockeyStick().  Note that it assumes that the log of the covariates are input. All covariates appear in the form exp(p*cov). p[1]=log a; p[2]=log b.  The other p are the covariate coefficients.
 }
