@@ -1,31 +1,10 @@
 #' @title Run the DM model
-#' 
 #' @description This function takes the list created by readDMData() and runs
 #' the Bayesian model to estimate the SR parameters.
 #' The output is written to a .csv file and an .Rdata file.
 #' It writes a file, mod1.txt to the user's working directory
 #' @param filename csv file saved from the DM tab of A & P file.  Must have age data.
-#' @param input If you want to set/change the input values being read in from the A & P file, those can be passed in as a list.  The values that can be set are (with the default behavior in parentheses).
-#' #' \describe{
-#'   \item{population}{(from A and P file): name}
-#'   \item{naturalMort}{c(0.5,0.4,0.3,0.2,0.1,0): natural mortality}
-#'   \item{firstYear}{(from A and P file)}
-#'   \item{lastYear}{(from A and P file)}
-#'   \item{MSYfirstYear}{(same as firstYear)}
-#'   \item{MSYlastYear}{(same as lastYear)}
-#'   \item{analysisType}{("DM")/"SS"}
-#'   \item{SRfunction}{("ricker")/"bevertonHolt"/"hockeyStick": spawner-recruit function}
-#'   \item{includeMarineSurvival}{"yes"/("no"): include marine survival covariate}
-#'   \item{includeFlow}{"yes"/("no"): include flow covariate}
-#'   \item{initialPopSize}{(from A and P file)}
-#'   \item{prod}{NA: used for initial conditions of optimizers and MCMC algorithm}
-#'   \item{cap}{NA: used for initial conditions of optimizers and MCMC algorithm}
-#'   \item{msCoef}{NA: used for initial conditions of optimizers and MCMC algorithm}
-#'   \item{flowCoef}{NA: used for initial conditions of optimizers and MCMC algorithm}
-#'   \item{centerMS}{0: set mean of the covariate to this value; NA to not change the mean}
-#'   \item{centerFlow}{0: set mean of the covariate to this value; NA to not change the mean}
-#'   \item{escapementObsSD}{NULL}
-#' }     
+#' @param input If you want to set/change the input values being read in from the DymamicsInput tab in the A & P file, those can be passed in as a list.  See ?readData for the values that can be changed and the defaults.
 #' @param priors parameters for prior distributions in the JAGS model
 #' @param run if run=TRUE, the model is run and the results returned, otherwise all of the information necessary to run the model is returned without running the model
 #' @param sims length of each MCMC chain; default is 10000
