@@ -178,10 +178,12 @@ createRAVfile = function(
     sep="")
     
   # SR parameters
+  tDat$bb <- log(tDat$b)
   if(estType=="median"){
-    SRparameters <- med(tDat[,c("a","b","c","d")],method="Spatial")$median
+    SRparameters <- med(tDat[,c("a","bb","c","d")],method="Spatial")$median
+    SRparameters[2] <- exp(SRparameters[2])
   }else{
-  	SRparameters <- tDat[sim,c("a","b","c","d")]
+    SRparameters <- tDat[sim,c("a","b","c","d")]
   }
   if(numParams < 4) SRparameters[(numParams+1):4] <- 0
     
