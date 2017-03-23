@@ -1,0 +1,109 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup.title, include=FALSE}
+the.title=paste("Analysis of uncertainty in",
+                str_proper(input$SRfunction), "SR parameters and propagation to VRAP RERs for the",
+                input$population)
+```
+---
+title: `r the.title`
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+#set up the inputs
+mm <- ifelse(input$includeMarineSurvival=="yes",1,0)
+ff <- ifelse(input$includeFlow=="yes",1,0)
+fig.num=0
+library(knitr)
+```
+<!--
+#This file is not called directly.  Rather is it called when writeReport() is called
+#the vars, population, input, dat, tDat, result, would have been defined by the writeReport() call
+#this file is called using the environment of the writeReport() call, thus the file knows of the vars
+-->
+
+The SR model being fit is a 
+```{r label=SR.text, results='asis', echo=FALSE}
+if(input$SRfunction=="ricker") cat(" Ricker function. ")
+if(input$SRfunction=="bevertonHolt") cat(" Beverton-Holt function. ")
+if(input$SRfunction=="hockeyStick") cat(" Hockey-stick function. ")
+  cat("$a$ and $b$ are the SR function parameters for production ($a$) and capacity ($b$).")
+  if(input$includeMarineSurvival=="yes") 
+cat("$c$ is the coefficient for the effect of the marine covariate $M$ (log-scale) on survival.")
+  if(input$includeFlow=="yes") 
+cat("$d$ is the coefficient for the effect of the flow covariate $F$ (log-scale) on survival.")
+```
+
+```{r label=SR.eqn1, results='asis', echo=FALSE}
+if(input$SRfunction=="ricker"){
+  cat("\\begin{equation}R=\\frac{S a}{ \\text{exp}(S/b)}")
+  if(input$includeMarineSurvival=="yes") cat("\\text{exp}(c M)")
+  if(input$includeFlow=="yes") cat("\\text{exp}(d F)")
+  cat("\\end{equation}\n")
+  if(input$includeMarineSurvival=="yes" | input$includeFlow=="yes")
+  cat("$F$ is the log of the stream flow covariate and $M$ is the log of the marine condition index covariate.\n\n")
+}
+```
+
+```{r label=SR.eqn2, results='asis', echo=FALSE}
+if(input$SRfunction=="bevertonHolt"){
+   cat("\\begin{equation}R=\\frac{S}{S/b + 1/a}")
+  if(input$includeMarineSurvival=="yes") cat("\\text{exp}(c M)")
+  if(input$includeFlow=="yes") cat("\\text{exp}(d F)")
+  cat("\\end{equation}\n")
+  if(input$includeMarineSurvival=="yes" | input$includeFlow=="yes")
+  cat("$F$ is the log of the stream flow covariate and $M$ is the log of the marine condition index covariate.\n\n")
+}
+```
+
+```{r label=SR.eqn3, results='asis', echo=FALSE}
+if(input$SRfunction=="hockeyStick"){
+  extra=""
+  if(input$includeMarineSurvival=="yes") extra="\\text{exp}(c M)"
+  if(input$includeFlow=="yes") extra=paste(extra,"\\text{exp}(d F)")
+cat(paste("\\begin{equation}R = \\left\\{ \\begin{array}{ll}S a", 
+           extra, "& \\mbox{if $S a < b$};\\\\b", 
+           extra, "& \\mbox{otherwise}.\\end{array} \\right.\\end{equation}\n"))
+if(input$includeMarineSurvival=="yes") cat("$F$ is the log of the stream flow covariate. ")
+if(input$includeFlow=="yes") cat("$M$ is the log of the marine condition index covariate.")
+cat("\n")
+}
+```
+
+## Data and Results
+
+```{r plotCaps, echo=FALSE}
+plotCaps=plotResults(dmObj, plotDest="none")
+```
+
+```{r run-numeric-md, include=FALSE}
+knitPrefix <- "\n```{r fig.cap=cap, eval.after=TRUE}\n\n"
+knitSuffix <- "\n\n```"
+out = NULL
+for (i in 1:length(plotCaps)) {
+  if(file.suffix=="pdf"){
+      knitPrefix <- paste("\n```{r plot",i, ", fig.cap=cap, eval.after=TRUE}\n\n",sep="")
+    }else{
+      knitPrefix <- paste("\n```{r plot",i, ", fig.cap=cap, fig.align='center', eval.after=TRUE}\n\n",sep="")
+    }
+  fig.num=fig.num+1
+  if(file.suffix=="pdf"){
+    rcode1 =paste("cap='", plotCaps[i], "'\n", sep="")
+  }else{
+    rcode1 =paste("cap=", "'Figure ",fig.num, ". ", plotCaps[i], "'\n", sep="")
+  }
+  rcode2 =paste("plotResults(dmObj, plotDest='default', plotType='", names(plotCaps)[i], "')\n", sep="")
+  
+  knit_expanded <- paste0(knitPrefix, rcode1, rcode2, knitSuffix)
+  if(file.suffix!="pdf") knit_expanded <- paste0(knit_expanded, "\n\n******\n\n")
+  out = c(out, knit_expanded)
+}
+```
+
+
+`r paste(knit(text = out), collapse = '\n')`

@@ -1,5 +1,5 @@
 % This creates a basic report of the uncertainty in SR parameters
-% It is meant to be called by createReport() function
+% It is meant to be called by writeReport() function
 \documentclass[12pt]{article}
 
 \usepackage[footnotesize, bf]{caption} % for nicer caption options
@@ -25,9 +25,9 @@ require(DM)
 @
 
 <<prelim>>=
-#This file is not called directly.  Rather is it called when createReport() is called.
-#the vars, population, input, dat, tDat, result, would have been defined by the createReport() call
-#this file is called using the environment of the createReport() call, thus the file knows of the vars
+#This file is not called directly.  Rather is it called when writeReport() is called.
+#the vars, population, input, dat, tDat, result, would have been defined by the writeReport() call
+#this file is called using the environment of the writeReport() call, thus the file knows of the vars
 
 
 #set up the inputs
