@@ -5,11 +5,12 @@
 \title{Create a priors list.}
 \usage{
 createPriors(pMode = 20, pSig = 7, pMin = 0, pMax = 40, cMu = 9,
-  cSig = 50, cMin = 3, cMax = 12, msMode = 1e-04, msMin = 1e-04,
-  msMax = 1000, flowMode = -1, flowMin = -1000, flowMax = -1e-04)
+  cSig = 50, cMin = 3, cMax = 12, msMu = 1e-04, msSig = 10,
+  msMin = 1e-04, msMax = 1000, flowMu = -1e-04, flowSig = 10,
+  flowMin = -1000, flowMax = -1e-04)
 }
 \arguments{
-\item{pMode}{Mode of the production prior}
+\item{pMode}{Mode of the production prior (dlnorm)}
 
 \item{pSig}{Sigma of the production prior}
 
@@ -17,17 +18,29 @@ createPriors(pMode = 20, pSig = 7, pMin = 0, pMax = 40, cMu = 9,
 
 \item{pMax}{Upperbound of the production prior}
 
+\item{cMu}{Mean of the log capacity prior (dnorm)}
+
 \item{cSig}{Sigma of the log capacity prior}
 
 \item{cMin}{Lowerbound of the log capacity prior}
 
 \item{cMax}{Upperbound of the log capacity prior}
 
-\item{msMin}{Lowerbound of the marine survival coefficient prior (note ms covariate is log transformed in the code)}
+\item{msMu}{Mean of the marine survival coef prior (dnorm)}
 
-\item{flowMax}{Upperbound of the flow coefficient prior; the coefficient is always negative  (note flow covariate is log transformed in the code)}
+\item{msSig}{Sigma of the marine survival coef prior}
 
-\item{cMode}{Mode of the log capacity prior}
+\item{msMin}{Lowerbound of the marine survival coefficient prior}
+
+\item{msMax}{Upperbound of the marine survival coefficient prior}
+
+\item{flowMu}{Mean of the marine survival coef prior (dnorm)}
+
+\item{flowSig}{Sigma of the marine survival coef prior}
+
+\item{flowMin}{Lowerbound of the flow coefficient prior; the coefficient is always negative}
+
+\item{flowMax}{Upperbound of the flow coefficient prior; the coefficient is always negative}
 }
 \value{
 a list with parameters for each prior.
