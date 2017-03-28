@@ -5,7 +5,7 @@
 #' It writes a file, mod1.txt to the user's working directory
 #' @param filename csv file saved from the DM tab of A & P file.  Must have age data.
 #' @param input A list that includes parameters for running the model (see readData for details) of particular interest are the parameters SRfunction, analysisType, and escapementObsSD. SRfunction sets the spawner-recruit function to be used. Current options are "ricker", "bevertonHolt" or "hockeyStick".   analysisType can be either "DM" or "SS".  DM corresponds to the traditional Dynamic Model which uses the maturation rates from the DynamicsInput tab in the A&P table. SS corresponds to the State Space model which estimates the maturation rates and includes observation error in the spawner counts.  If escapementObsSD is a positive real number, observation error is fixed at that value. If it is NULL, observation error is a free parameter that is estimated.
-#' @param priors parameters for prior distributions in the JAGS model
+#' @param priors parameters for prior distributions in the JAGS model. See \code{\link{createPriors}}.
 #' @param run if run=TRUE, the model is run and the results returned, otherwise all of the information necessary to run the model is returned without running the model
 #' @param sims length of each MCMC chain; default is 10000
 #' @param numChains number of MCMC chains. default is 3
