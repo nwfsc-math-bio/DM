@@ -191,12 +191,12 @@ createRAVfile = function(
   logFlowMu <- mean(log(dat$flow[dat$broodYear %in% input$firstYear:input$lastYear]))
   logMSMu <- mean(log(dat$marineSurvivalIndex[dat$broodYear %in% input$firstYear:input$lastYear]))
   
-  # Mean and CV  for marine survival index (M^c)  
-  msInd <- if(input$centerMS) exp(bdat$logMarineSurvivalIndex+logMSMu) else exp(bdat$logMarineSurvivalIndex)
-  marineSurvMu <- mean(msInd,na.rm=TRUE)
-  marineSurvCV <- sd(msInd,na.rm=TRUE)/marineSurvMu
-  marineSurvMax <- max(msInd,na.rm=TRUE)
+  # Mean and CV and Autoc/Trend/Cycle  for marine survival index (M^c)  
   if(input$includeMarineSurvival=="yes"){
+    msInd <- if(input$centerMS) exp(bdat$logMarineSurvivalIndex+logMSMu) else exp(bdat$logMarineSurvivalIndex)
+    marineSurvMu <- mean(msInd,na.rm=TRUE)
+    marineSurvCV <- sd(msInd,na.rm=TRUE)/marineSurvMu
+    marineSurvMax <- max(msInd,na.rm=TRUE)
     msParams <- switch(options$marineSurvType,
                        Autoc = c(ifelse(marineSurvCV>0,calcAutoCorr(msInd),0),rep(0,2)),
                        Trend = c(0,rep(NULL,2)), # not sure of approach used by Norma. Lots of conditional formulas used in middleStep sheet.
@@ -204,6 +204,7 @@ createRAVfile = function(
     )
   }else{
     msParams <- NULL
+    marineSurvMu <- marineSurvCV <- marineSurvMax<- NULL
   }
   
   # Set the centering flag
@@ -213,11 +214,11 @@ createRAVfile = function(
     stop("Cannot run VRAP with only one covariate centered.  Center both or center none.\n")
   
   # Mean and CV  for flow (or other fw) index (exp(dF))
-  flowInd <- if(input$centerFlow) bdat$logFlow+logFlowMu else bdat$logFlow
-  flowMu <- mean(flowInd,na.rm=TRUE)
-  flowCV <- sd(flowInd,na.rm=TRUE)/flowMu
-  flowMax <- max(flowInd,na.rm=TRUE)
   if(input$includeFlow=="yes"){
+    flowInd <- if(input$centerFlow) bdat$logFlow+logFlowMu else bdat$logFlow
+    flowMu <- mean(flowInd, na.rm=TRUE)
+    flowCV <- sd(flowInd, na.rm=TRUE)/flowMu
+    flowMax <- max(flowInd, na.rm=TRUE)
     fParams <- switch(options$flowType,
                       Autoc = c(ifelse(flowCV>0,calcAutoCorr(flowInd),0),rep(0,2)),
                       Trend = c(0,rep(NULL,2)), # not sure of approach used by Norma. Lots of conditional formulas used in middleStep sheet.
@@ -225,6 +226,7 @@ createRAVfile = function(
     )
   }else{
     fParams <- NULL
+    flowMu <- flowCV <- flowMax <- NULL
   }
   
   # SR variation parameters. If SRvariation = "YES" (currently a function parameter) then,
