@@ -85,7 +85,9 @@ plotCaps=plotResults(dmObj, plotDest="none")
 knitPrefix <- "\n```{r fig.cap=cap, eval.after=TRUE}\n\n"
 knitSuffix <- "\n\n```"
 out = NULL
-for (i in 1:length(plotCaps)) {
+plot.nums=1:length(plotCaps)
+if(!mm & !ff) plot.nums = plot.nums[names(plotCaps)!="covariates"]
+for (i in plot.nums) {
   if(file.suffix=="pdf"){
       knitPrefix <- paste("\n```{r plot",i, ", fig.cap=cap, eval.after=TRUE}\n\n",sep="")
     }else{

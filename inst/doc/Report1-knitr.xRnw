@@ -31,8 +31,8 @@ require(DM)
 
 
 #set up the inputs
-mm <- ifelse(input$covariates=="yes",1,0)
-ff <- ifelse(input$covariates=="yes",1,0)
+mm <- ifelse(input$includeMarineSurvival=="yes",1,0)
+ff <- ifelse(input$includeFlow=="yes",1,0)
 fig.num=0
 require(knitr)
 @
@@ -95,7 +95,9 @@ plotCaps=plotResults(dmObj, plotDest="none")
 
 <<figure.tex>>=
 out = NULL
-for (i in 1:length(plotCaps)) {
+plot.nums=1:length(plotCaps)
+if(!mm & !ff) plot.nums = plot.nums[names(plotCaps)!="covariates"]
+for (i in plot.nums) {
   knitPrefix <- paste("\n\\setkeys{Gin}{}\n\\begin{figure}[htp]\n\\begin{center}\n<<label=plot",i,",echo=FALSE, out.width='5in'>>=\n",sep="")
   rcode =paste("plotResults(dmObj, plotDest='default', plotType='", names(plotCaps)[i], "')\n", sep="")
   cap=str_replace_all(plotCaps[i],"/%"," percent")
