@@ -3,14 +3,14 @@
 #' @param dmObj.RData.file a saved DM object as a RData file with the objects "input","dat","result", and "tDat"
 #' @param output.file Filename to give saved report.
 #' @param rav.options list of the rav file options to use that do not come from the posteriors.
-#' @param output_format list of output formats.  If input.type=="xRmd", any format that rmarkdown:::render allows is fine.  If input.type=="xRnw", only "pdf_document" is allowed.
+#' @param output.format list of output formats.  If input.type=="xRmd", any format that rmarkdown:::render allows is fine.  If input.type=="xRnw", only "pdf_document" is allowed.
 #' @param output.dir Directory where to save the output files.  Defaults to working directory.
 #' @param input.type xRmd for rmarkdown.  xRnw for knitr.
 #' @return Nothing.  The report is written to a PDF and tex file.
 writeReport <- function(dmObj=NULL, dmObj.RData.file=NULL,
                     output.file="report1",
                     rav.options=list(), 
-                    output_format=c("pdf_document"),
+                    output.format=c("pdf_document"),
                     output.dir=getwd(), input.type="xRnw")
 {
   if (missing(dmObj) && missing(dmObj.RData.file)) {
@@ -27,7 +27,7 @@ writeReport <- function(dmObj=NULL, dmObj.RData.file=NULL,
     }
     
     if (input.type=="xRnw") {
-      if(output_format != "pdf_document") stop("If input.type is xRnw, then only pdf_document allowed as output_format.")
+      if(!all(output.format == "pdf_document")) stop("If input.type is xRnw, then only pdf_document allowed as output.format.")
     }
     
     SRfunction <- input$SRfunction
@@ -83,7 +83,7 @@ writeReport <- function(dmObj=NULL, dmObj.RData.file=NULL,
   rmdPath <- file.path(rmdPath, paste("Report1-knitr.",input.type,sep=""))
   file.copy(path, rmdPath)
   path <- rmdPath
-  for(out in output_format){
+  for(out in output.format){
     if(input.type=="xRnw"){
       file.suffix = str_split(out,"_")[[1]][1]
       if(file.suffix == "pdf")

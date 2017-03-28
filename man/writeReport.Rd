@@ -6,7 +6,7 @@
 \usage{
 writeReport(dmObj = NULL, dmObj.RData.file = NULL,
   output.file = "report1", rav.options = list(),
-  output_format = c("pdf_document"), output.dir = getwd(),
+  output.format = c("pdf_document"), output.dir = getwd(),
   input.type = "xRnw")
 }
 \arguments{
@@ -18,7 +18,7 @@ writeReport(dmObj = NULL, dmObj.RData.file = NULL,
 
 \item{rav.options}{list of the rav file options to use that do not come from the posteriors.}
 
-\item{output_format}{list of output formats.  If input.type=="xRmd", any format that rmarkdown:::render allows is fine.  If input.type=="xRnw", only "pdf_document" is allowed.}
+\item{output.format}{list of output formats.  If input.type=="xRmd", any format that rmarkdown:::render allows is fine.  If input.type=="xRnw", only "pdf_document" is allowed.}
 
 \item{output.dir}{Directory where to save the output files.  Defaults to working directory.}
 
