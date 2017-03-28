@@ -1,10 +1,10 @@
 Package: DM
 Type: Package
 Title: Dynamic Model
-Version: 1.7.3
-Date: 2017-03-23
+Version: 1.7.4
+Date: 2017-03-27
 Depends: R (>= 2.15.0), R2jags, R2WinBUGS, coda, KernSmooth, GenSA,
-        stringr, tools, knitr, shiny, openxlsx, VRAP, Gmedian, rmarkdown
+        stringr, tools, knitr, shiny, openxlsx, VRAP (>= 1.3.6), Gmedian, rmarkdown
 SystemRequirements: WinBUGS 1.4, jags (>= 3.3.0)
 Author: Eli Holmes, Martin Liermann, Howard Coleman, NOAA, Seattle, USA
 Maintainer: Elizabeth Holmes - NOAA Federal <eli.holmes@noaa.gov>
