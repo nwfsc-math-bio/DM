@@ -53,7 +53,7 @@ plotResults(r1)
 ## Create an html report with the figures and a summary of the model fit
 
 ```{r not-run, eval=FALSE}
-writeReport(r1, input.type="Rmd", output_format="html_document")
+writeReport(r1, input.type="Rmd", output.format="html_document")
 ```
 
 ## Run multiple simulations to get multiple RERs
