@@ -14,9 +14,7 @@ $RECYCLE.BIN/
 *.lnk
 # =========================
 # Operating System Files
-# =========================
 # OSX
-# =========================
 .DS_Store
 .AppleDouble
 .LSOverride
@@ -40,3 +38,5 @@ Temporary Items
 .Rhistory
 DM.Rproj
 .Rbuildignore
+
+mod1.txt
