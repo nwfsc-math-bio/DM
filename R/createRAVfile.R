@@ -2,7 +2,7 @@
 #' 
 #' @description 
 #' This function takes the output from the DM model and creates a 
-#' rav file that can be used forrunning the VRAP simulations. 
+#' rav file that can be used for running the VRAP simulations. 
 #' The parameter simInd indicates which MCMC sim to use. 
 #' This takes the information from the input file in the DM 
 #' spreadsheet (read in by readDMData) and the results of the 
@@ -139,7 +139,7 @@ createRAVfile = function(
   # Note this is not the way that Norma writes the SR funs in her documentation, but this is how it is in CompRecruits.R
   # R = a S exp(-S/b) M^c exp(dF), where F=logFlow
   # equivalent to R = a S exp(-S/b) exp(c*logMS) exp(d*logFlow)
-  # a=prod; b=exp(logCap); c=msCoef, d=-flowCoef
+  # a=prod; b=exp(logCap)=capacity; c=msCoef, d=-flowCoef
 
   # For Bev2, Bev3,  and Bev4, first parameter is intrinsic productivity (slope at orgin) and second parameter is max recruits.  
   # Third parameter is that for marine survival index (not used for Bev2 or Bev3) and fourth parameter is that for freshwater 
